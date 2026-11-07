@@ -52,7 +52,7 @@ export class Obstacles {
     for (const o of this.items || []) this.group.remove(o.mesh);
     this.items = [];
     this.nextSpawnZ = -40; // first obstacle distance ahead of the player
-    this.lastLanes = null;
+    this.rowId = 0;
   }
 
   // Gap between patterns shrinks over time (density ramp).
@@ -64,15 +64,16 @@ export class Obstacles {
     const pool = PATTERNS.filter((p) => p.min <= elapsed);
     const pat = pool[Math.floor(Math.random() * pool.length)];
     const flip = Math.random() < 0.5;
-    for (const row of pat.rows) {
-      const lanes = flip ? [...row].reverse() : row;
+    const row = { id: ++this.rowId, scored: false };
+    for (const r of pat.rows) {
+      const lanes = flip ? [...r].reverse() : r;
       lanes.forEach((type, i) => {
         if (!type) return;
         const d = defs[type];
         const mesh = new THREE.Mesh(this.geos[type], this.mats[type]);
         mesh.position.set((i - 1) * this.laneWidth, d.y, z);
         this.group.add(mesh);
-        this.items.push({ type, mesh, d });
+        this.items.push({ type, mesh, d, row, lane: i - 1 });
       });
     }
   }
@@ -91,6 +92,20 @@ export class Obstacles {
       else keep.push(o);
     }
     this.items = keep;
+  }
+
+  // Rows that just passed the runner (back edge behind z=0.5), each reported once.
+  passed() {
+    const out = new Map();
+    for (const o of this.items) {
+      if (o.row.scored) continue;
+      if (o.mesh.position.z - o.d.d / 2 > 0.5) {
+        if (!out.has(o.row)) out.set(o.row, []);
+        out.get(o.row).push(o);
+      }
+    }
+    for (const row of out.keys()) row.scored = true;
+    return [...out.values()];
   }
 
   hits(b) {

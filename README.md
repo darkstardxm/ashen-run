@@ -10,6 +10,9 @@ A dark gothic 3D endless runner for the browser, built with Three.js. You run aw
 | Lane change | Left / Right | Swipe left / right |
 | Pause | Esc / P | Pause button |
 
+## Scoring
+Distance earns points times your combo multiplier. Jumping, sliding, or dodging past an obstacle builds the combo (x2 at 5, x3 at 15, x5 at 30). A last-moment lane dodge is a near miss worth extra. Go 4 seconds without clearing anything and the combo resets. Your best score is saved in the browser.
+
 ## Development
 Requires Node 20+.
 
