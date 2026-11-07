@@ -15,15 +15,29 @@
       .screen button { font: 700 18px Georgia, serif; letter-spacing: .2em; padding: 12px 34px; color: #f0dcb4; background: #2a1209cc; border: 1px solid #a8572a; cursor: pointer; }
       .screen button:hover { background: #4a1f0ccc; }
       .hidden { display: none !important; }
-      #hud { position: fixed; top: 10px; right: 14px; text-align: right; color: #e8d4ac; font: 700 26px Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; }
+      #hud { position: fixed; top: 10px; right: 14px; text-align: right; color: #e8d4ac; font: 700 28px Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; }
       #hud small { display: block; font-size: 13px; opacity: .7; }
+      #combo { font-size: 15px; color: #ffb070; min-height: 18px; }
+      #mult { font-size: 34px; color: #ff6a2a; text-shadow: 0 0 14px #ff3a0088; min-height: 40px; }
+      #mult.pulse { animation: pulse .35s ease-out; }
+      @keyframes pulse { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+      #pop { position: fixed; top: 34%; width: 100%; text-align: center; pointer-events: none; }
+      .pop { font: 700 22px Georgia, serif; color: #f0dcb4; text-shadow: 0 0 10px #ff4a00; animation: rise .9s ease-out forwards; }
+      .pop.near { color: #ffcc66; font-size: 26px; }
+      .pop.tier { color: #ff6a2a; font-size: 44px; }
+      @keyframes rise { 0% { opacity: 0; transform: translateY(10px) scale(.9); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px) scale(1.05); } }
+      #pause-btn { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); font: 700 16px Georgia, serif; color: #e8d4ac; background: #0008; border: 1px solid #a8572a; padding: 6px 14px; cursor: pointer; }
+      .record { color: #ffb040; font-weight: 700; letter-spacing: .2em; text-shadow: 0 0 12px #ff5a00; animation: pulse .6s ease-out infinite alternate; }
     </style>
   </head>
   <body>
     <div id="app"></div>
-    <div id="hud" class="hidden"><span id="score">0</span><small id="speed"></small></div>
-    <div id="title" class="screen"><h1>ASHEN RUN</h1><p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide.</p><button id="play-btn">RUN</button></div>
-    <div id="over" class="screen hidden"><h1>YOU DIED</h1><p>Distance <span id="final-score">0</span></p><button id="restart-btn">RISE AGAIN</button></div>
+    <div id="hud" class="hidden"><span id="score">0</span><small>BEST <span id="best">0</span> · <span id="speed"></span></small><div id="combo"></div><div id="mult"></div></div>
+    <div id="pop"></div>
+    <button id="pause-btn" class="hidden" aria-label="Pause">II</button>
+    <div id="pause" class="screen hidden"><h1>PAUSED</h1><button id="resume-btn">RESUME</button></div>
+    <div id="title" class="screen"><h1>ASHEN RUN</h1><p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide. Esc to pause.</p><p>BEST <span id="title-best">0</span></p><button id="play-btn">RUN</button></div>
+    <div id="over" class="screen hidden"><h1>YOU DIED</h1><p class="record hidden" id="new-record">NEW RECORD</p><p style="font-size:28px;opacity:1">Score <span id="final-score">0</span></p><p>Distance <span id="final-dist">0</span> m · Best <span id="final-best">0</span></p><button id="restart-btn">RISE AGAIN</button></div>
     <div id="fps"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

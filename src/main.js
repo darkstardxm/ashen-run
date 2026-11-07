@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Input } from './input.js';
 import { Obstacles } from './obstacles.js';
+import { Score } from './score.js';
 
 // M1 core loop (greybox): three lanes, jump/slide/lane input, procedural obstacles,
 // collision, speed + density ramps, game over and restart.
@@ -103,10 +104,13 @@ scene.add(sparks);
 
 const obstacles = new Obstacles(scene, LANE_WIDTH);
 const input = new Input(renderer.domElement);
+const score = new Score();
+$('title-best').textContent = score.best;
 
 // State.
 const state = {
-  mode: 'title',      // title | running | dying | over
+  mode: 'title',      // title | running | paused | dying | over
+  prevLane: 0, laneChangeT: 99,
   lane: 0,            // -1, 0, 1
   x: 0, y: 0, vy: 0,
   grounded: true,
@@ -125,9 +129,13 @@ function resetRun() {
   Object.assign(state, {
     mode: 'running', lane: 0, x: 0, y: 0, vy: 0, grounded: true, slideT: 0,
     speed: BASE_SPEED, elapsed: 0, distance: 0, dyingT: 0, landT: 0, shake: 0,
-    bufferedJump: 0, bufferedSlide: 0,
+    bufferedJump: 0, bufferedSlide: 0, prevLane: 0, laneChangeT: 99,
   });
   obstacles.reset();
+  score.reset();
+  updateHud(true);
+  $('pause').classList.add('hidden');
+  $('pause-btn').classList.remove('hidden');
   sparks.visible = false;
   runnerRoot.rotation.set(0, 0, 0);
   runnerBody.scale.set(1, 1, 1);
@@ -154,8 +162,42 @@ function die() {
 
 function showGameOver() {
   state.mode = 'over';
-  $('final-score').textContent = Math.floor(state.distance);
+  const record = score.finish();
+  $('final-score').textContent = score.value;
+  $('final-dist').textContent = Math.floor(state.distance);
+  $('final-best').textContent = score.best;
+  $('title-best').textContent = score.best;
+  $('new-record').classList.toggle('hidden', !record);
   $('over').classList.remove('hidden');
+  $('pause-btn').classList.add('hidden');
+}
+
+function setPaused(on) {
+  if (on && state.mode === 'running') { state.mode = 'paused'; $('pause').classList.remove('hidden'); }
+  else if (!on && state.mode === 'paused') { state.mode = 'running'; $('pause').classList.add('hidden'); clock.getDelta(); }
+}
+$('pause-btn').addEventListener('click', () => setPaused(state.mode === 'running'));
+$('resume-btn').addEventListener('click', () => setPaused(false));
+document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
+
+// HUD
+const hud = { score: $('score'), best: $('best'), combo: $('combo'), mult: $('mult'), pop: $('pop') };
+let shownMult = 0;
+function updateHud(force) {
+  hud.score.textContent = score.value;
+  hud.best.textContent = Math.max(score.best, score.value);
+  hud.combo.textContent = score.combo > 0 ? `${score.combo} combo` : '';
+  if (force || shownMult !== score.mult) {
+    shownMult = score.mult;
+    hud.mult.textContent = score.mult > 1 ? `x${score.mult}` : '';
+    hud.mult.classList.remove('pulse'); void hud.mult.offsetWidth; hud.mult.classList.add('pulse');
+  }
+}
+function popText(text, cls) {
+  const el = document.createElement('div');
+  el.className = `pop ${cls}`; el.textContent = text;
+  hud.pop.appendChild(el);
+  setTimeout(() => el.remove(), 900);
 }
 
 function startOrRestart() {
@@ -171,7 +213,6 @@ window.addEventListener('resize', () => {
 });
 
 const fpsEl = $('fps');
-const scoreEl = $('score');
 const speedEl = $('speed');
 let frames = 0, fpsTime = 0;
 const clock = new THREE.Clock();
@@ -180,12 +221,16 @@ function handleInput(dt) {
   state.bufferedJump = Math.max(0, state.bufferedJump - dt);
   state.bufferedSlide = Math.max(0, state.bufferedSlide - dt);
   for (const a of input.drain()) {
+    if (state.mode === 'paused') { if (a === 'pause' || a === 'confirm' || a === 'jump') setPaused(false); continue; }
     if (state.mode !== 'running') {
       if (a === 'jump' || a === 'confirm') startOrRestart();
       continue;
     }
-    if (a === 'left') state.lane = Math.max(-1, state.lane - 1);
-    else if (a === 'right') state.lane = Math.min(1, state.lane + 1);
+    if (a === 'pause') { setPaused(true); continue; }
+    if (a === 'left' || a === 'right') {
+      const nl = Math.max(-1, Math.min(1, state.lane + (a === 'left' ? -1 : 1)));
+      if (nl !== state.lane) { state.prevLane = state.lane; state.lane = nl; state.laneChangeT = 0; }
+    }
     else if (a === 'jump') state.bufferedJump = BUFFER_TIME;
     else if (a === 'slide') state.bufferedSlide = BUFFER_TIME;
   }
@@ -229,6 +274,17 @@ function runnerBox() {
   return { minX: state.x - 0.35, maxX: state.x + 0.35, minY: state.y, maxY: state.y + h, minZ: -0.35, maxZ: 0.35 };
 }
 
+// A row is cleared cleanly if an obstacle was in the runner's lane (jumped or slid past it).
+// Dodging out of its lane also counts as a clear; doing it in the last 0.4s is a near miss.
+function scorePassed() {
+  for (const row of obstacles.passed()) {
+    const inLane = row.some((o) => o.lane === state.lane);
+    const leftLane = row.some((o) => o.lane === state.prevLane && o.lane !== state.lane);
+    if (leftLane && state.laneChangeT < 0.4) score.bump('near');
+    else if (inLane || (leftLane && state.laneChangeT < 1.5)) score.bump('clear');
+  }
+}
+
 function tick() {
   const rawDt = Math.min(clock.getDelta(), 0.05);
   const slowmo = state.mode === 'dying' ? 0.25 : 1;
@@ -241,13 +297,21 @@ function tick() {
   if (state.mode === 'running') {
     state.elapsed += dt;
     state.distance += state.speed * dt;
+    state.laneChangeT += dt;
+    score.update(dt, state.speed * dt);
     const step = Math.floor(state.elapsed / RAMP_INTERVAL);
     const newSpeed = Math.min(MAX_SPEED, BASE_SPEED + step * SPEED_STEP);
     if (newSpeed > state.speed) { state.speed = newSpeed; camera.fov += 7; }
     updateRunner(dt);
     obstacles.update(dt, state.speed, state.elapsed);
     if (obstacles.hits(runnerBox())) die();
-    scoreEl.textContent = Math.floor(state.distance);
+    else scorePassed();
+    for (const e of score.drain()) {
+      if (e.type === 'clear') popText(`+${e.pts}`, 'clear');
+      else if (e.type === 'near') popText(`NEAR MISS +${e.pts}`, 'near');
+      else if (e.type === 'tier') popText(`x${e.mult}`, 'tier');
+    }
+    updateHud();
     speedEl.textContent = `${state.speed.toFixed(0)} m/s`;
   } else if (state.mode === 'dying') {
     state.dyingT += rawDt;
@@ -307,4 +371,4 @@ function tick() {
 tick();
 
 // Debug hook for automated play-tests.
-window.__runner = { state, obstacles, input };
+window.__runner = { state, obstacles, input, score };

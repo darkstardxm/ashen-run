@@ -5,7 +5,7 @@ export class Input {
     const map = {
       ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
       ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', ArrowDown: 'slide', KeyS: 'slide',
-      Enter: 'confirm',
+      Enter: 'confirm', Escape: 'pause', KeyP: 'pause',
     };
     window.addEventListener('keydown', (e) => {
       const a = map[e.code];
