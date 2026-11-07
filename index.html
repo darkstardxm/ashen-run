@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#0b0d12" />
+    <title>Ashen Run</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #07080b; overflow: hidden; touch-action: none; }
+      #app { position: fixed; inset: 0; }
+      #fps { position: fixed; top: 8px; left: 8px; color: #c9a36b; font: 12px monospace; opacity: .7; pointer-events: none; }
+      #title { position: fixed; top: 18%; width: 100%; text-align: center; color: #d8c9a8; font: 700 42px Georgia, serif; letter-spacing: .25em; text-shadow: 0 0 18px #ff5a1f88; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="title">ASHEN RUN</div>
+    <div id="fps"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
