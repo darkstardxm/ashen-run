@@ -9,12 +9,21 @@
       html, body { margin: 0; height: 100%; background: #07080b; overflow: hidden; touch-action: none; }
       #app { position: fixed; inset: 0; }
       #fps { position: fixed; top: 8px; left: 8px; color: #c9a36b; font: 12px monospace; opacity: .7; pointer-events: none; }
-      #title { position: fixed; top: 18%; width: 100%; text-align: center; color: #d8c9a8; font: 700 42px Georgia, serif; letter-spacing: .25em; text-shadow: 0 0 18px #ff5a1f88; pointer-events: none; }
+      .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #d8c9a8; font-family: Georgia, serif; text-align: center; background: radial-gradient(ellipse at center, #0000 30%, #000a 100%); }
+      .screen h1 { margin: 0; font-size: clamp(32px, 8vw, 56px); letter-spacing: .25em; text-shadow: 0 0 18px #ff5a1f88; }
+      .screen p { margin: 0; opacity: .75; font-size: 15px; }
+      .screen button { font: 700 18px Georgia, serif; letter-spacing: .2em; padding: 12px 34px; color: #f0dcb4; background: #2a1209cc; border: 1px solid #a8572a; cursor: pointer; }
+      .screen button:hover { background: #4a1f0ccc; }
+      .hidden { display: none !important; }
+      #hud { position: fixed; top: 10px; right: 14px; text-align: right; color: #e8d4ac; font: 700 26px Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; }
+      #hud small { display: block; font-size: 13px; opacity: .7; }
     </style>
   </head>
   <body>
     <div id="app"></div>
-    <div id="title">ASHEN RUN</div>
+    <div id="hud" class="hidden"><span id="score">0</span><small id="speed"></small></div>
+    <div id="title" class="screen"><h1>ASHEN RUN</h1><p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide.</p><button id="play-btn">RUN</button></div>
+    <div id="over" class="screen hidden"><h1>YOU DIED</h1><p>Distance <span id="final-score">0</span></p><button id="restart-btn">RISE AGAIN</button></div>
     <div id="fps"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
