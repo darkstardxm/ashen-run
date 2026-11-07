@@ -2,12 +2,17 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { Obstacles } from './obstacles.js';
 import { Score } from './score.js';
+import { loadAssets } from './assets.js';
+import { RunnerModel } from './runner.js';
+import { BIOMES, BIOME_LENGTH, TRANSITION, biomeIndexAt } from './biomes.js';
+import { SheetFX, cropFrame, radialTexture } from './fx.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-// M1 core loop (greybox): three lanes, jump/slide/lane input, procedural obstacles,
-// collision, speed + density ramps, game over and restart.
+// M3: art + biomes on top of the M1/M2 loop. Three lanes, jump/slide/lane input,
+// procedural obstacles, combo scoring, three biomes cycling every 1000 m.
 export const LANE_WIDTH = 2;
 const SEGMENT_LENGTH = 12;
-const SEGMENTS = 12;
+const SEGMENTS = 9;
 const BASE_SPEED = 12;
 const MAX_SPEED = 30;
 const SPEED_STEP = 2;          // added every ramp
@@ -17,147 +22,236 @@ const JUMP_VELOCITY = 13;
 const SLIDE_TIME = 0.65;
 const LANE_LERP = 14;
 const BUFFER_TIME = 0.15;
+const LAND_TIME = 0.3;
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0d12);
-scene.fog = new THREE.Fog(0x0b0d12, 10, 75);
+scene.background = new THREE.Color(BIOMES[0].fog);
+scene.fog = new THREE.FogExp2(BIOMES[0].fog, BIOMES[0].density);
 
-const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 200);
-const CAM_BASE = new THREE.Vector3(0, 4, 7);
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 220);
+const CAM_BASE = new THREE.Vector3(0, 3.8, 6.5);
 camera.position.copy(CAM_BASE);
 camera.lookAt(0, 1, -10);
 
-scene.add(new THREE.HemisphereLight(0x3a4660, 0x120a06, 0.7));
-const moon = new THREE.DirectionalLight(0x8899bb, 0.8);
-moon.position.set(-5, 10, 5);
-scene.add(moon);
-const torch = new THREE.PointLight(0xff6a2a, 30, 18, 2);
+const hemi = new THREE.HemisphereLight(0x3a4a66, 0x14161c, 0.55);
+scene.add(hemi);
+const key = new THREE.DirectionalLight(0xa8bce0, 1.1);
+scene.add(key, key.target);
+const torch = new THREE.PointLight(0xff7a2a, 22, 16, 2);
 torch.position.set(0, 3.6, -2.5);
 scene.add(torch);
-const fill = new THREE.PointLight(0xffb080, 8, 8, 2); // keeps the runner readable from behind
+const fill = new THREE.PointLight(0xffc090, 6, 7, 2); // keeps the runner readable from behind
 fill.position.set(0, 2.5, 2.5);
 scene.add(fill);
 
-// Looping track.
-const track = new THREE.Group();
-scene.add(track);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.95 });
-const lineMat = new THREE.MeshBasicMaterial({ color: 0x5a3a22 });
-const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1c1b1f, roughness: 1 });
-for (let i = 0; i < SEGMENTS; i++) {
-  const seg = new THREE.Group();
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(LANE_WIDTH * 3, 0.4, SEGMENT_LENGTH), floorMat);
-  floor.position.y = -0.2;
-  seg.add(floor);
-  for (const x of [-LANE_WIDTH / 2, LANE_WIDTH / 2]) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.01, SEGMENT_LENGTH * 0.9), lineMat);
-    line.position.set(x, 0.01, 0);
-    seg.add(line);
-  }
-  for (const x of [-4.2, 4.2]) {
-    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 6, 0.8), pillarMat);
-    pillar.position.set(x, 3, 0);
-    seg.add(pillar);
-  }
-  seg.position.z = -i * SEGMENT_LENGTH;
-  track.add(seg);
-}
-
-// Placeholder runner: a pivot we squash/stretch, holding a capsule.
-const runnerRoot = new THREE.Group();
-const runnerBody = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.35, 0.9, 4, 12),
-  new THREE.MeshStandardMaterial({ color: 0x6b6f78, metalness: 0.6, roughness: 0.4 })
-);
-runnerBody.position.y = 0.8;
-runnerRoot.add(runnerBody);
-scene.add(runnerRoot);
-
-// Embers.
-const EMBERS = 300;
-const emberGeo = new THREE.BufferGeometry();
-const emberPos = new Float32Array(EMBERS * 3);
-for (let i = 0; i < EMBERS; i++) {
-  emberPos[i * 3] = (Math.random() - 0.5) * 16;
-  emberPos[i * 3 + 1] = Math.random() * 8;
-  emberPos[i * 3 + 2] = -Math.random() * 60;
-}
-emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
-scene.add(new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: 0xff7a30, size: 0.08, transparent: true, opacity: 0.85 })));
-
-// Hit sparks (collision feedback).
-const SPARKS = 40;
-const sparkGeo = new THREE.BufferGeometry();
-sparkGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SPARKS * 3), 3));
-const sparkVel = new Float32Array(SPARKS * 3);
-const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: 0xffb060, size: 0.12, transparent: true }));
-sparks.visible = false;
-scene.add(sparks);
-
-const obstacles = new Obstacles(scene, LANE_WIDTH);
 const input = new Input(renderer.domElement);
 const score = new Score();
 $('title-best').textContent = score.best;
 
-// State.
 const state = {
-  mode: 'title',      // title | running | paused | dying | over
+  mode: 'loading',    // loading | title | running | paused | dying | over
   prevLane: 0, laneChangeT: 99,
-  lane: 0,            // -1, 0, 1
-  x: 0, y: 0, vy: 0,
-  grounded: true,
-  slideT: 0,
-  speed: BASE_SPEED,
-  elapsed: 0,
-  distance: 0,
-  dyingT: 0,
-  landT: 0,
-  shake: 0,
-  bufferedJump: 0,
-  bufferedSlide: 0,
+  lane: 0, x: 0, y: 0, vy: 0,
+  grounded: true, slideT: 0, sinceJump: 9,
+  speed: BASE_SPEED, elapsed: 0, distance: 0,
+  dyingT: 0, landT: 0, shake: 0,
+  bufferedJump: 0, bufferedSlide: 0,
+  biome: 0,
 };
+
+let world = null; // built after assets load
+window.__runner = { state, input, score, ready: false, renderer, pr: () => pixelRatio };
+
+loadAssets((p) => { $('load-bar').style.width = `${Math.round(p * 100)}%`; })
+  .then((assets) => {
+    world = buildWorld(assets);
+    window.__runner.obstacles = world.obstacles;
+    // Test hook: jump to a distance and rebuild the track around it.
+    window.__runner.warp = (d) => { state.distance = d; world.obstacles.reset(); layoutTrack(world); };
+    window.__runner.ready = true;
+    state.mode = 'title';
+    $('loading').classList.add('hidden');
+    $('play-btn').classList.remove('hidden');
+  })
+  .catch((e) => { console.error(e); $('loading').textContent = 'Failed to load. Refresh to try again.'; });
+
+function buildWorld(assets) {
+  const w = {};
+
+  // Sky: two equirect domes so the next biome's sky can fade in over the last one.
+  const skyGeo = new THREE.SphereGeometry(180, 48, 24);
+  const mkSky = (order) => {
+    const m = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, transparent: true, depthWrite: false, toneMapped: false }));
+    m.renderOrder = order;
+    m.rotation.y = Math.PI / 2;
+    scene.add(m);
+    return m;
+  };
+  w.skyA = mkSky(-2); w.skyB = mkSky(-1);
+  w.skies = BIOMES.map((b) => assets.biomes[b.id].sky);
+
+  // Track: each slot holds one segment + scenery per biome; only one is visible.
+  w.track = new THREE.Group();
+  scene.add(w.track);
+  w.slots = [];
+  for (let i = 0; i < SEGMENTS; i++) {
+    const slot = new THREE.Group();
+    slot.userData.variants = BIOMES.map((b, bi) => {
+      const a = assets.biomes[b.id];
+      const g = new THREE.Group();
+      g.add(a.track.clone());
+      const prop = (name, x, z, rotY, s = 1) => {
+        const src = a.scenery[name];
+        if (!src) return;
+        const o = src.clone();
+        o.position.set(x, 0, z); o.rotation.y = rotY; o.scale.setScalar(s);
+        g.add(o);
+      };
+      // Pillars flank every segment; a random prop sits between them; arches every 4th.
+      prop(b.pillar, -4.6, -1.5, Math.PI / 2); prop(b.pillar, 4.6, -1.5, -Math.PI / 2);
+      const extras = b.scenery.filter((n) => n !== b.pillar);
+      const pick = () => extras[Math.floor(Math.random() * extras.length)];
+      if (i % 2 === 0) prop(pick(), -5.6, -7.5, Math.PI / 2);
+      else prop(pick(), 5.6, -7.5, -Math.PI / 2);
+      if (b.arch && i % 4 === 0) prop(b.arch, 0, -10.5, 0);
+      const merged = mergeStatic(g);
+      merged.visible = bi === 0;
+      slot.add(merged);
+      return merged;
+    });
+    w.track.add(slot);
+    w.slots.push(slot);
+  }
+  layoutTrack(w);
+
+  // Runner + blob shadow.
+  w.runner = new RunnerModel(assets.runner);
+  scene.add(w.runner.root);
+  w.shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: radialTexture('#000000cc', '#00000000'), transparent: true, depthWrite: false }));
+  w.shadow.position.y = 0.03;
+  scene.add(w.shadow);
+
+  // VFX.
+  const v = assets.vfx;
+  w.sparks = new SheetFX(scene, v.hit_sparks, { cols: 4, rows: 2, frames: 8, fps: 30, pool: 3 });
+  w.dust = new SheetFX(scene, v.dust_landing_puff, { cols: 4, rows: 2, frames: 8, fps: 24, additive: false, pool: 8 });
+  w.burst = new SheetFX(scene, v.speedup_ember_burst, { cols: 4, rows: 4, frames: 16, fps: 24, pool: 2 });
+  w.jetTex = v.fire_jet;
+  w.jets = [];
+
+  // Embers drift up around the track (texture from the embers sheet).
+  const EMBERS = 260;
+  const emberGeo = new THREE.BufferGeometry();
+  const ep = new Float32Array(EMBERS * 3);
+  for (let i = 0; i < EMBERS; i++) { ep[i * 3] = (Math.random() - 0.5) * 18; ep[i * 3 + 1] = Math.random() * 8; ep[i * 3 + 2] = -Math.random() * 70; }
+  emberGeo.setAttribute('position', new THREE.BufferAttribute(ep, 3));
+  w.emberGeo = emberGeo;
+  w.embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({
+    map: cropFrame(v.embers, 256, 256), color: BIOMES[0].ember, size: 0.22, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  }));
+  scene.add(w.embers);
+
+  const fxApi = {
+    dust: (pos, size) => w.dust.spawn(new THREE.Vector3(pos.x, size * 0.35, pos.z), size, BIOMES[state.biome].dust, 0.8),
+    fireJet: (mesh) => addJet(w, mesh),
+  };
+  w.obstacles = new Obstacles(scene, LANE_WIDTH, assets, fxApi);
+  return w;
+}
+
+// Bake a static group into one mesh per material, cutting draw calls a lot.
+// Attributes are normalised to plain float arrays first so mixed source files can merge.
+function plainGeometry(src, matrix) {
+  const g = new THREE.BufferGeometry();
+  for (const [name, a] of Object.entries(src.attributes)) {
+    const arr = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++) for (let c = 0; c < a.itemSize; c++) arr[i * a.itemSize + c] = a.getComponent(i, c);
+    g.setAttribute(name, new THREE.BufferAttribute(arr, a.itemSize));
+  }
+  if (src.index) g.setIndex(Array.from(src.index.array));
+  else g.setIndex([...Array(src.attributes.position.count).keys()]);
+  return g.applyMatrix4(matrix);
+}
+function mergeStatic(group) {
+  group.updateMatrixWorld(true);
+  const buckets = new Map();
+  group.traverse((o) => {
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    const attrs = Object.entries(o.geometry.attributes).map(([n, a]) => `${n}${a.itemSize}`).sort().join(',');
+    const k = `${o.material.name || o.material.uuid}|${attrs}`;
+    if (!buckets.has(k)) buckets.set(k, { mat: o.material, geos: [] });
+    buckets.get(k).geos.push(plainGeometry(o.geometry, o.matrixWorld));
+  });
+  const out = new THREE.Group();
+  for (const { mat, geos } of buckets.values()) {
+    const geo = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+    if (!geo) { console.warn('merge failed', mat.name); continue; }
+    out.add(new THREE.Mesh(geo, mat));
+  }
+  return out;
+}
+
+function addJet(w, mesh) {
+  const node = mesh.getObjectByName('fx_fire_jet') || mesh;
+  const map = w.jetTex.clone();
+  map.repeat.set(1 / 8, 1 / 2);
+  const mat = new THREE.MeshBasicMaterial({ map, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false });
+  const geo = new THREE.PlaneGeometry(1.4, 3.2).translate(0, 1.6, 0);
+  const g = new THREE.Group();
+  for (const r of [0, Math.PI / 2]) { const q = new THREE.Mesh(geo, mat); q.rotation.y = r; g.add(q); }
+  node.add(g);
+  const jet = { map, t: 0, done: () => { node.remove(g); w.jets = w.jets.filter((j) => j !== jet); } };
+  w.jets.push(jet);
+  return jet;
+}
+
+// Segment slot origins sit at the segment start and run 12 m toward -Z.
+function layoutTrack(w) {
+  w.slots.forEach((slot, i) => { slot.position.z = SEGMENT_LENGTH * (1 - i); setSlotBiome(slot); });
+}
+function setSlotBiome(slot) {
+  const bi = biomeIndexAt(state.distance - slot.position.z);
+  slot.userData.variants.forEach((g, i) => { g.visible = i === bi; });
+}
 
 function resetRun() {
   Object.assign(state, {
-    mode: 'running', lane: 0, x: 0, y: 0, vy: 0, grounded: true, slideT: 0,
+    mode: 'running', lane: 0, x: 0, y: 0, vy: 0, grounded: true, slideT: 0, sinceJump: 9,
     speed: BASE_SPEED, elapsed: 0, distance: 0, dyingT: 0, landT: 0, shake: 0,
-    bufferedJump: 0, bufferedSlide: 0, prevLane: 0, laneChangeT: 99,
+    bufferedJump: 0, bufferedSlide: 0, prevLane: 0, laneChangeT: 99, biome: 0,
   });
-  obstacles.reset();
+  world.obstacles.reset();
+  for (const j of [...world.jets]) j.done();
+  layoutTrack(world);
   score.reset();
   updateHud(true);
   $('pause').classList.add('hidden');
   $('pause-btn').classList.remove('hidden');
-  sparks.visible = false;
-  runnerRoot.rotation.set(0, 0, 0);
-  runnerBody.scale.set(1, 1, 1);
+  world.runner.root.rotation.set(0, 0, 0);
   $('title').classList.add('hidden');
   $('over').classList.add('hidden');
   $('hud').classList.remove('hidden');
+  showBiomeName(0);
 }
 
-function die() {
+function die(hit) {
   state.mode = 'dying';
   state.dyingT = 0;
   state.shake = 0.6;
-  const p = sparkGeo.attributes.position.array;
-  for (let i = 0; i < SPARKS; i++) {
-    p[i * 3] = state.x; p[i * 3 + 1] = state.y + 1; p[i * 3 + 2] = -0.4;
-    sparkVel[i * 3] = (Math.random() - 0.5) * 8;
-    sparkVel[i * 3 + 1] = Math.random() * 7;
-    sparkVel[i * 3 + 2] = (Math.random() - 0.2) * 6;
-  }
-  sparkGeo.attributes.position.needsUpdate = true;
-  sparks.visible = true;
-  sparks.material.opacity = 1;
+  const z = hit ? Math.min(0.3, hit.mesh.position.z) : -0.4;
+  world.sparks.spawn(new THREE.Vector3(state.x, state.y + 1.1, z), 1.6, 0xffc080);
 }
 
 function showGameOver() {
@@ -189,8 +283,9 @@ function updateHud(force) {
   hud.combo.textContent = score.combo > 0 ? `${score.combo} combo` : '';
   if (force || shownMult !== score.mult) {
     shownMult = score.mult;
+    hud.mult.className = score.mult > 1 ? `m${score.mult}` : '';
     hud.mult.textContent = score.mult > 1 ? `x${score.mult}` : '';
-    hud.mult.classList.remove('pulse'); void hud.mult.offsetWidth; hud.mult.classList.add('pulse');
+    if (score.mult > 1) { void hud.mult.offsetWidth; hud.mult.classList.add('pulse'); }
   }
 }
 function popText(text, cls) {
@@ -198,6 +293,11 @@ function popText(text, cls) {
   el.className = `pop ${cls}`; el.textContent = text;
   hud.pop.appendChild(el);
   setTimeout(() => el.remove(), 900);
+}
+function showBiomeName(i) {
+  const el = $('biome');
+  el.textContent = BIOMES[i].name;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 
 function startOrRestart() {
@@ -215,12 +315,23 @@ window.addEventListener('resize', () => {
 const fpsEl = $('fps');
 const speedEl = $('speed');
 let frames = 0, fpsTime = 0;
+// Adaptive resolution: drop the pixel ratio a notch while frame rate stays under 45.
+let pixelRatio = Math.min(window.devicePixelRatio, 2), slowWindows = 0;
+function adaptResolution(fps) {
+  slowWindows = fps < 45 ? slowWindows + 1 : 0;
+  if (slowWindows >= 4 && pixelRatio > 0.75) {
+    pixelRatio = Math.max(0.75, pixelRatio - 0.25);
+    renderer.setPixelRatio(pixelRatio);
+    slowWindows = 0;
+  }
+}
 const clock = new THREE.Clock();
 
 function handleInput(dt) {
   state.bufferedJump = Math.max(0, state.bufferedJump - dt);
   state.bufferedSlide = Math.max(0, state.bufferedSlide - dt);
   for (const a of input.drain()) {
+    if (state.mode === 'loading') continue;
     if (state.mode === 'paused') { if (a === 'pause' || a === 'confirm' || a === 'jump') setPaused(false); continue; }
     if (state.mode !== 'running') {
       if (a === 'jump' || a === 'confirm') startOrRestart();
@@ -235,10 +346,13 @@ function handleInput(dt) {
     else if (a === 'slide') state.bufferedSlide = BUFFER_TIME;
   }
   if (state.bufferedJump > 0 && state.grounded) {
-    state.vy = JUMP_VELOCITY; state.grounded = false; state.slideT = 0; state.bufferedJump = 0;
+    state.vy = JUMP_VELOCITY; state.grounded = false; state.slideT = 0; state.bufferedJump = 0; state.sinceJump = 0; state.landT = 0;
   }
   if (state.bufferedSlide > 0) {
-    if (state.grounded) { state.slideT = SLIDE_TIME; state.bufferedSlide = 0; }
+    if (state.grounded) {
+      if (state.slideT <= 0) world.dust.spawn(new THREE.Vector3(state.x, 0.4, 0.2), 1.3, BIOMES[state.biome].dust, 0.7);
+      state.slideT = SLIDE_TIME; state.bufferedSlide = 0; state.landT = 0;
+    }
     else state.vy = Math.min(state.vy, -18); // fast-fall into slide
   }
 }
@@ -248,36 +362,35 @@ function updateRunner(dt) {
   const prevX = state.x;
   state.x += (targetX - state.x) * Math.min(1, LANE_LERP * dt);
   const lean = (state.x - prevX) / Math.max(dt, 1e-4);
+  state.sinceJump += dt;
 
   if (!state.grounded) {
     state.vy += GRAVITY * dt;
     state.y += state.vy * dt;
-    if (state.y <= 0) { state.y = 0; state.vy = 0; state.grounded = true; state.landT = 0.18; }
+    if (state.y <= 0) {
+      state.y = 0; state.vy = 0; state.grounded = true;
+      if (state.bufferedSlide <= 0) state.landT = LAND_TIME;
+      world.dust.spawn(new THREE.Vector3(state.x, 0.4, 0.2), 1.4, BIOMES[state.biome].dust, 0.7);
+    }
   }
   if (state.slideT > 0) state.slideT -= dt;
   if (state.landT > 0) state.landT -= dt;
 
-  runnerRoot.position.set(state.x, state.y, 0);
-  runnerRoot.rotation.z = THREE.MathUtils.lerp(runnerRoot.rotation.z, -lean * 0.03, 0.3);
-  const sliding = state.slideT > 0;
-  let sy = 1, sxz = 1;
-  if (sliding) { sy = 0.45; sxz = 1.2; }
-  else if (state.landT > 0) { const k = state.landT / 0.18; sy = 1 - 0.25 * k; sxz = 1 + 0.15 * k; }
-  else if (!state.grounded) { sy = 1 + Math.min(0.15, Math.abs(state.vy) * 0.01); sxz = 1 / sy; }
-  runnerBody.scale.set(sxz, THREE.MathUtils.lerp(runnerBody.scale.y, sy, 0.45), sxz);
-  runnerBody.position.y = 0.8 * runnerBody.scale.y + (state.grounded && !sliding ? Math.abs(Math.sin(state.elapsed * 12)) * 0.07 : 0);
+  const r = world.runner.root;
+  r.position.set(state.x, state.y, 0);
+  r.rotation.z = THREE.MathUtils.lerp(r.rotation.z, -lean * 0.012, 0.3);
 }
 
 function runnerBox() {
   const sliding = state.slideT > 0;
-  const h = sliding ? 0.8 : 1.6;
-  return { minX: state.x - 0.35, maxX: state.x + 0.35, minY: state.y, maxY: state.y + h, minZ: -0.35, maxZ: 0.35 };
+  const h = sliding ? 0.85 : 1.8; // slide pose stays under 0.94 m; hanging hazards start at 1.1 m
+  return { minX: state.x - 0.3, maxX: state.x + 0.3, minY: state.y, maxY: state.y + h, minZ: -0.3, maxZ: 0.3 };
 }
 
 // A row is cleared cleanly if an obstacle was in the runner's lane (jumped or slid past it).
 // Dodging out of its lane also counts as a clear; doing it in the last 0.4s is a near miss.
 function scorePassed() {
-  for (const row of obstacles.passed()) {
+  for (const row of world.obstacles.passed()) {
     const inLane = row.some((o) => o.lane === state.lane);
     const leftLane = row.some((o) => o.lane === state.prevLane && o.lane !== state.lane);
     if (leftLane && state.laneChangeT < 0.4) score.bump('near');
@@ -285,14 +398,53 @@ function scorePassed() {
   }
 }
 
+// Fog, sky, lights and ember colour blend into each new biome over TRANSITION metres.
+const cA = new THREE.Color(), cB = new THREE.Color();
+const lerpHex = (a, b, t, out) => out.set(a).lerp(cB.set(b), t);
+function updateBiome(time) {
+  const d = state.distance;
+  const cur = biomeIndexAt(d);
+  if (cur !== state.biome && state.mode === 'running') showBiomeName(cur);
+  state.biome = cur;
+  const prev = (cur + BIOMES.length - 1) % BIOMES.length;
+  const local = d % BIOME_LENGTH;
+  const t = d < BIOME_LENGTH ? 1 : THREE.MathUtils.smoothstep(local, 0, TRANSITION);
+  const A = BIOMES[prev], B = BIOMES[cur];
+  lerpHex(A.fog, B.fog, t, scene.fog.color);
+  scene.background.copy(scene.fog.color);
+  scene.fog.density = THREE.MathUtils.lerp(A.density, B.density, t) + Math.sin(Math.PI * t) * 0.025;
+  hemi.color.copy(lerpHex(A.hemi.sky, B.hemi.sky, t, cA));
+  hemi.groundColor.copy(lerpHex(A.hemi.ground, B.hemi.ground, t, cA));
+  hemi.intensity = THREE.MathUtils.lerp(A.hemi.intensity, B.hemi.intensity, t) * 1.6;
+  key.color.copy(lerpHex(A.key.color, B.key.color, t, cA));
+  key.intensity = THREE.MathUtils.lerp(A.key.intensity, B.key.intensity, t) * 1.4;
+  key.position.set(...B.key.pos.map((v, i) => THREE.MathUtils.lerp(A.key.pos[i], v, t)));
+  key.position.x += state.x; key.target.position.set(state.x, 0, -8);
+  world.embers.material.color.copy(lerpHex(A.ember, B.ember, t, cA));
+  world.skyA.material.map = world.skies[prev]; world.skyA.material.opacity = 1;
+  world.skyB.material.map = world.skies[cur]; world.skyB.material.opacity = t;
+  world.skyA.visible = t < 1;
+  torch.intensity = 22 + Math.sin(time * 13) * 3 + Math.sin(time * 7.3) * 2;
+}
+
+let lastSkyMaps = [null, null];
+function syncSkyMaps() {
+  const a = world.skyA.material, b = world.skyB.material;
+  if (lastSkyMaps[0] !== a.map || lastSkyMaps[1] !== b.map) { a.needsUpdate = b.needsUpdate = true; lastSkyMaps = [a.map, b.map]; }
+}
+
 function tick() {
+  requestAnimationFrame(tick);
   const rawDt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+  handleInput(rawDt);
+  if (!world) { renderer.render(scene, camera); return; }
+
   const slowmo = state.mode === 'dying' ? 0.25 : 1;
   const dt = rawDt * slowmo;
-  handleInput(rawDt);
-
   const moving = state.mode === 'running' || state.mode === 'title' || state.mode === 'dying';
   const worldSpeed = state.mode === 'title' ? 8 : state.speed * (state.mode === 'dying' ? Math.max(0, 1 - state.dyingT * 2) : 1);
+  const dz = moving ? worldSpeed * dt : 0;
 
   if (state.mode === 'running') {
     state.elapsed += dt;
@@ -301,10 +453,14 @@ function tick() {
     score.update(dt, state.speed * dt);
     const step = Math.floor(state.elapsed / RAMP_INTERVAL);
     const newSpeed = Math.min(MAX_SPEED, BASE_SPEED + step * SPEED_STEP);
-    if (newSpeed > state.speed) { state.speed = newSpeed; camera.fov += 7; }
+    if (newSpeed > state.speed) {
+      state.speed = newSpeed; camera.fov += 7;
+      world.burst.spawn(new THREE.Vector3(state.x, 1.1, 0), 3, 0xffffff, 0.9);
+    }
     updateRunner(dt);
-    obstacles.update(dt, state.speed, state.elapsed);
-    if (obstacles.hits(runnerBox())) die();
+    world.obstacles.update(dt, state.speed, state.elapsed, state.distance, t);
+    const hit = world.obstacles.hits(runnerBox());
+    if (hit && !state.god) die(hit);
     else scorePassed();
     for (const e of score.drain()) {
       if (e.type === 'clear') popText(`+${e.pts}`, 'clear');
@@ -315,37 +471,41 @@ function tick() {
     speedEl.textContent = `${state.speed.toFixed(0)} m/s`;
   } else if (state.mode === 'dying') {
     state.dyingT += rawDt;
-    runnerRoot.rotation.x = Math.min(Math.PI / 2.2, state.dyingT * 3);
-    runnerRoot.position.y = Math.max(0, state.y - state.dyingT * 2);
-    obstacles.update(dt, worldSpeed, state.elapsed);
-    if (state.dyingT > 1.0) showGameOver();
+    world.runner.root.position.y = Math.max(0, state.y - state.dyingT * 4);
+    world.obstacles.update(dt, worldSpeed, state.elapsed, state.distance, t);
+    if (state.dyingT > 1.5) showGameOver();
   }
+
+  world.runner.update(rawDt, {
+    mode: state.mode, grounded: state.grounded, sliding: state.slideT > 0, sinceJump: state.sinceJump,
+    landT: state.landT, laneDelta: state.lane * LANE_WIDTH - state.x, speed: state.speed,
+  });
+  world.shadow.position.x = state.x;
+  world.shadow.scale.setScalar(Math.max(0.4, 1 - state.y * 0.25));
 
   if (moving) {
-    for (const seg of track.children) {
-      seg.position.z += worldSpeed * dt;
-      if (seg.position.z > SEGMENT_LENGTH) seg.position.z -= SEGMENTS * SEGMENT_LENGTH;
+    for (const slot of world.slots) {
+      slot.position.z += dz;
+      if (slot.position.z > SEGMENT_LENGTH * 2) { slot.position.z -= SEGMENTS * SEGMENT_LENGTH; setSlotBiome(slot); }
     }
   }
+  updateBiome(t);
+  syncSkyMaps();
 
-  const p = emberGeo.attributes.position.array;
-  for (let i = 0; i < EMBERS; i++) {
-    p[i * 3 + 1] += dt * 0.6;
-    p[i * 3 + 2] += worldSpeed * dt * 0.5;
-    if (p[i * 3 + 1] > 8 || p[i * 3 + 2] > 8) { p[i * 3 + 1] = 0; p[i * 3 + 2] = -60; }
+  const p = world.emberGeo.attributes.position.array;
+  for (let i = 0; i < p.length; i += 3) {
+    p[i + 1] += rawDt * 0.8;
+    p[i + 2] += dz * 0.6;
+    if (p[i + 1] > 8 || p[i + 2] > 8) { p[i + 1] = Math.random() * 2; p[i + 2] = -70 + Math.random() * 10; p[i] = (Math.random() - 0.5) * 18; }
   }
-  emberGeo.attributes.position.needsUpdate = true;
-
-  if (sparks.visible) {
-    const sp = sparkGeo.attributes.position.array;
-    for (let i = 0; i < SPARKS; i++) {
-      sparkVel[i * 3 + 1] += GRAVITY * 0.4 * rawDt;
-      sp[i * 3] += sparkVel[i * 3] * rawDt;
-      sp[i * 3 + 1] += sparkVel[i * 3 + 1] * rawDt;
-      sp[i * 3 + 2] += sparkVel[i * 3 + 2] * rawDt;
-    }
-    sparkGeo.attributes.position.needsUpdate = true;
-    sparks.material.opacity = Math.max(0, sparks.material.opacity - rawDt * 0.8);
+  world.emberGeo.attributes.position.needsUpdate = true;
+  world.sparks.update(rawDt);
+  world.dust.update(rawDt, dz);
+  world.burst.update(rawDt);
+  for (const j of world.jets) {
+    j.t += rawDt;
+    const f = Math.floor(j.t * 20) % 16;
+    j.map.offset.set((f % 8) / 8, 1 - (Math.floor(f / 8) + 1) / 2);
   }
 
   // Camera: follow lane loosely, FOV kick decays, shake on hit.
@@ -356,19 +516,20 @@ function tick() {
   const s = state.shake * 0.5;
   camera.position.set(CAM_BASE.x + state.x * 0.5 + (Math.random() - 0.5) * s, CAM_BASE.y + (Math.random() - 0.5) * s, CAM_BASE.z);
   camera.lookAt(state.x * 0.5, 1, -10);
+  world.skyA.position.copy(camera.position);
+  world.skyB.position.copy(camera.position);
 
-  const t = clock.elapsedTime;
   torch.position.x = state.x;
   fill.position.x = state.x;
-  torch.intensity = 26 + Math.sin(t * 13) * 3 + Math.sin(t * 7.3) * 2;
 
   frames++; fpsTime += rawDt;
-  if (fpsTime >= 0.5) { fpsEl.textContent = `${Math.round(frames / fpsTime)} fps`; frames = 0; fpsTime = 0; }
+  if (fpsTime >= 0.5) {
+    const fps = Math.round(frames / fpsTime);
+    fpsEl.textContent = `${fps} fps`;
+    if (state.mode === 'running') adaptResolution(fps);
+    frames = 0; fpsTime = 0;
+  }
 
   renderer.render(scene, camera);
-  requestAnimationFrame(tick);
 }
 tick();
-
-// Debug hook for automated play-tests.
-window.__runner = { state, obstacles, input, score };

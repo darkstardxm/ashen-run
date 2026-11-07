@@ -1,0 +1,9 @@
+{
+ "biome": "ashen_cathedral",
+ "top": "#0b0f1a",
+ "horizon": "#3a4a66",
+ "bottom": "#141a26",
+ "fog": "#2c3648",
+ "horizon_v": 0.547,
+ "note": "Equirect: row 560 (v=0.547) = horizon line, ruins sit above it. Use as scene.background with texture.mapping=THREE.EquirectangularReflectionMapping, colorSpace=SRGB. Gradient fallback: lerp top->horizon over v 0..0.5, horizon->bottom over 0.5..0.7."
+}

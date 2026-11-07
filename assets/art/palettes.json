@@ -1,0 +1,351 @@
+{
+ "version": "1.0",
+ "project": "Ashen Run",
+ "notes": "sRGB hex. Three.js: set texture.colorSpace=SRGBColorSpace for albedo; use these hexes via new THREE.Color(hex) (r152+ converts sRGB->linear). Fog uses THREE.FogExp2(color,density).",
+ "overall": {
+  "stone_base": {
+   "hex": "#4a4540",
+   "role": "default ruin stone body"
+  },
+  "stone_shadow": {
+   "hex": "#1e1b19",
+   "role": "stone in shadow / crevices"
+  },
+  "stone_highlight": {
+   "hex": "#8a8278",
+   "role": "top-facing worn edges"
+  },
+  "metal_iron": {
+   "hex": "#3a3836",
+   "role": "blackened iron, armor"
+  },
+  "metal_highlight": {
+   "hex": "#9a948c",
+   "role": "armor edge glint"
+  },
+  "metal_bronze": {
+   "hex": "#7a5a32",
+   "role": "bronze/brass fittings"
+  },
+  "cloth_dark": {
+   "hex": "#2a2422",
+   "role": "runner cloak, banners"
+  },
+  "cloth_mid": {
+   "hex": "#5a4a3e",
+   "role": "worn cloth folds"
+  },
+  "bone": {
+   "hex": "#cfc4a8",
+   "role": "bone, skulls"
+  },
+  "ash": {
+   "hex": "#7d7873",
+   "role": "ash dust, particles"
+  },
+  "emissive_ember": {
+   "hex": "#ff7a1f",
+   "role": "primary emissive: embers, fire, hazard cue"
+  },
+  "emissive_ember_core": {
+   "hex": "#ffd27a",
+   "role": "hot core of flames/embers"
+  },
+  "emissive_danger": {
+   "hex": "#ff3b1f",
+   "role": "obstacle danger rim / telegraph"
+  },
+  "accent_gold": {
+   "hex": "#d9a441",
+   "role": "UI gold, score, record"
+  },
+  "accent_blood": {
+   "hex": "#8a1c1c",
+   "role": "UI danger, hit flash, game over"
+  },
+  "ui_ink": {
+   "hex": "#0e0c0b",
+   "role": "UI panel fill"
+  },
+  "ui_text": {
+   "hex": "#e8dcc0",
+   "role": "UI body text (parchment)"
+  },
+  "fog_neutral": {
+   "hex": "#3a3a40",
+   "role": "generic fog"
+  }
+ },
+ "biomes": {
+  "ashen_cathedral": {
+   "mood": "cold blue fog, candles, stained glass",
+   "colors": {
+    "stone_base": {
+     "hex": "#4b5260",
+     "role": "cold grey-blue cathedral stone"
+    },
+    "stone_shadow": {
+     "hex": "#191d26",
+     "role": "shadowed stone"
+    },
+    "stone_highlight": {
+     "hex": "#8e98a8",
+     "role": "moonlit edges"
+    },
+    "metal": {
+     "hex": "#5c5a58",
+     "role": "iron candelabra, censer chain"
+    },
+    "metal_accent": {
+     "hex": "#8c6f3c",
+     "role": "tarnished brass censer"
+    },
+    "cloth": {
+     "hex": "#3b2a3e",
+     "role": "faded violet banners"
+    },
+    "emissive_candle": {
+     "hex": "#ffb35c",
+     "role": "candle flame"
+    },
+    "emissive_glass_blue": {
+     "hex": "#4f8fe0",
+     "role": "stained glass blue"
+    },
+    "emissive_glass_red": {
+     "hex": "#c23a48",
+     "role": "stained glass red"
+    },
+    "emissive_glass_gold": {
+     "hex": "#e8b84a",
+     "role": "stained glass gold"
+    },
+    "accent": {
+     "hex": "#b8c8e0",
+     "role": "pale holy light shafts"
+    },
+    "fog": {
+     "hex": "#2c3648",
+     "role": "fog colour"
+    },
+    "sky_top": {
+     "hex": "#0b0f1a",
+     "role": "sky zenith"
+    },
+    "sky_horizon": {
+     "hex": "#3a4a66",
+     "role": "sky horizon"
+    },
+    "sky_bottom": {
+     "hex": "#141a26",
+     "role": "below horizon"
+    }
+   },
+   "fog": {
+    "color": "#2c3648",
+    "type": "FogExp2",
+    "density": 0.022,
+    "linear_near": 15,
+    "linear_far": 90
+   },
+   "lights": {
+    "key": {
+     "type": "DirectionalLight",
+     "color": "#a8bce0",
+     "intensity": 1.1,
+     "dir": "from above-front-left, moonlight"
+    },
+    "ambient": {
+     "type": "HemisphereLight",
+     "sky": "#3a4a66",
+     "ground": "#14161c",
+     "intensity": 0.55
+    },
+    "point_accent": {
+     "color": "#ffb35c",
+     "intensity": 1.5,
+     "distance": 8,
+     "note": "candles/braziers, max 2-3 live point lights; bake the rest as emissive"
+    }
+   }
+  },
+  "ember_forge": {
+   "mood": "lava, chains, orange furnaces",
+   "colors": {
+    "stone_base": {
+     "hex": "#3d3230",
+     "role": "scorched basalt"
+    },
+    "stone_shadow": {
+     "hex": "#140e0d",
+     "role": "shadowed basalt"
+    },
+    "stone_highlight": {
+     "hex": "#8a5a44",
+     "role": "lava-lit edges (warm)"
+    },
+    "metal": {
+     "hex": "#2e2a28",
+     "role": "black iron chains, anvils"
+    },
+    "metal_hot": {
+     "hex": "#b8461a",
+     "role": "heated iron"
+    },
+    "cloth": {
+     "hex": "#4a2a1e",
+     "role": "leather aprons, scorched cloth"
+    },
+    "emissive_lava": {
+     "hex": "#ff5a12",
+     "role": "lava surface"
+    },
+    "emissive_lava_core": {
+     "hex": "#ffc04a",
+     "role": "lava hot cracks"
+    },
+    "emissive_furnace": {
+     "hex": "#ff8a2a",
+     "role": "furnace mouths"
+    },
+    "accent": {
+     "hex": "#ffd27a",
+     "role": "sparks"
+    },
+    "fog": {
+     "hex": "#3a1e14",
+     "role": "smoky ember haze"
+    },
+    "sky_top": {
+     "hex": "#0d0706",
+     "role": "smoke ceiling"
+    },
+    "sky_horizon": {
+     "hex": "#7a2a10",
+     "role": "lava glow horizon"
+    },
+    "sky_bottom": {
+     "hex": "#2a0c06",
+     "role": "below horizon"
+    }
+   },
+   "fog": {
+    "color": "#3a1e14",
+    "type": "FogExp2",
+    "density": 0.026,
+    "linear_near": 12,
+    "linear_far": 80
+   },
+   "lights": {
+    "key": {
+     "type": "DirectionalLight",
+     "color": "#ff9a5a",
+     "intensity": 1.0,
+     "dir": "low from below-front (lava uplight)"
+    },
+    "ambient": {
+     "type": "HemisphereLight",
+     "sky": "#2a1410",
+     "ground": "#7a2a10",
+     "intensity": 0.6
+    },
+    "point_accent": {
+     "color": "#ff6a1f",
+     "intensity": 2.0,
+     "distance": 10
+    }
+   }
+  },
+  "bone_catacombs": {
+   "mood": "skull walls, green-grey haze",
+   "colors": {
+    "stone_base": {
+     "hex": "#4a4a3e",
+     "role": "damp mossy stone"
+    },
+    "stone_shadow": {
+     "hex": "#16180f",
+     "role": "shadowed stone"
+    },
+    "stone_highlight": {
+     "hex": "#8a8c74",
+     "role": "wet edges"
+    },
+    "bone": {
+     "hex": "#c9c0a0",
+     "role": "skulls, bones"
+    },
+    "bone_shadow": {
+     "hex": "#6a6250",
+     "role": "bone in shade"
+    },
+    "metal": {
+     "hex": "#3c3e34",
+     "role": "rusted iron grates"
+    },
+    "metal_rust": {
+     "hex": "#6e4a2c",
+     "role": "rust"
+    },
+    "cloth": {
+     "hex": "#2e3226",
+     "role": "rotted shrouds"
+    },
+    "emissive_soulfire": {
+     "hex": "#7dff9a",
+     "role": "green soul-fire in skull eyes"
+    },
+    "emissive_torch": {
+     "hex": "#ff9a3c",
+     "role": "rare torch (warm contrast)"
+    },
+    "accent": {
+     "hex": "#a8c49a",
+     "role": "haze highlight / moss"
+    },
+    "fog": {
+     "hex": "#2e352c",
+     "role": "green-grey haze"
+    },
+    "sky_top": {
+     "hex": "#0a0c09",
+     "role": "vault darkness"
+    },
+    "sky_horizon": {
+     "hex": "#3a4436",
+     "role": "haze horizon"
+    },
+    "sky_bottom": {
+     "hex": "#151a13",
+     "role": "below horizon"
+    }
+   },
+   "fog": {
+    "color": "#2e352c",
+    "type": "FogExp2",
+    "density": 0.03,
+    "linear_near": 10,
+    "linear_far": 70
+   },
+   "lights": {
+    "key": {
+     "type": "DirectionalLight",
+     "color": "#b8c8a0",
+     "intensity": 0.8,
+     "dir": "from above, pale shaft"
+    },
+    "ambient": {
+     "type": "HemisphereLight",
+     "sky": "#3a4436",
+     "ground": "#121410",
+     "intensity": 0.6
+    },
+    "point_accent": {
+     "color": "#7dff9a",
+     "intensity": 1.2,
+     "distance": 6
+    }
+   }
+  }
+ }
+}

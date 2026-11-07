@@ -1,2 +1,3 @@
 import { defineConfig } from 'vite';
-export default defineConfig({ base: './', build: { outDir: 'dist', target: 'es2020' } });
+// /assets is served as the public root: assets/art/... -> ./art/... in the build.
+export default defineConfig({ base: './', publicDir: 'assets', build: { outDir: 'dist', target: 'es2020' } });

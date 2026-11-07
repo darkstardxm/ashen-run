@@ -3,41 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#0b0d12" />
+    <meta name="theme-color" content="#0e0c0b" />
     <title>Ashen Run</title>
+    <link rel="icon" href="./art/ui/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./art/ui/favicon_32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./art/ui/app_icon_192.png" />
+    <link rel="preload" href="./art/ui/fonts/PirataOne-Regular.ttf" as="font" type="font/ttf" crossorigin />
     <style>
-      html, body { margin: 0; height: 100%; background: #07080b; overflow: hidden; touch-action: none; }
+      @font-face { font-family: 'Pirata One'; src: url('./art/ui/fonts/PirataOne-Regular.ttf') format('truetype'); font-display: swap; }
+      @font-face { font-family: 'Cinzel'; src: url('./art/ui/fonts/Cinzel-wght.ttf') format('truetype'); font-weight: 400 900; font-display: swap; }
+      :root { --gold: #d9a441; --ink: #0e0c0b; --parch: #e8dcc0; --blood: #8a1c1c; --ember: #ff7a1f; }
+      html, body { margin: 0; height: 100%; background: #07080b; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
       #app { position: fixed; inset: 0; }
-      #fps { position: fixed; top: 8px; left: 8px; color: #c9a36b; font: 12px monospace; opacity: .7; pointer-events: none; }
-      .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #d8c9a8; font-family: Georgia, serif; text-align: center; background: radial-gradient(ellipse at center, #0000 30%, #000a 100%); }
-      .screen h1 { margin: 0; font-size: clamp(32px, 8vw, 56px); letter-spacing: .25em; text-shadow: 0 0 18px #ff5a1f88; }
-      .screen p { margin: 0; opacity: .75; font-size: 15px; }
-      .screen button { font: 700 18px Georgia, serif; letter-spacing: .2em; padding: 12px 34px; color: #f0dcb4; background: #2a1209cc; border: 1px solid #a8572a; cursor: pointer; }
-      .screen button:hover { background: #4a1f0ccc; }
+      #fps { position: fixed; bottom: 6px; left: 8px; color: var(--gold); font: 11px monospace; opacity: .5; pointer-events: none; }
+      .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--parch); font-family: Cinzel, Georgia, serif; text-align: center; background: radial-gradient(ellipse at center, #0000 25%, #000c 100%); }
+      .screen h1 { margin: 0; font: 400 clamp(44px, 11vw, 84px) 'Pirata One', Georgia, serif; letter-spacing: .06em; color: var(--gold); text-shadow: 0 0 22px #ff5a1f99, 0 3px 0 #000; }
+      .screen p { margin: 0; opacity: .8; font-size: 14px; letter-spacing: .04em; max-width: 92vw; }
+      .logo { width: min(86vw, 620px); filter: drop-shadow(0 0 20px #000); }
+      .btn { font: 700 18px Cinzel, Georgia, serif; letter-spacing: .2em; min-width: 200px; min-height: 52px; padding: 12px 34px; color: var(--parch); background: linear-gradient(#2a1209ee, #120806ee); border: 2px solid var(--gold); border-radius: 3px; box-shadow: 0 0 18px #ff5a1f44, inset 0 0 12px #000; cursor: pointer; }
+      .btn:hover { box-shadow: 0 0 26px #ff5a1f88, inset 0 0 12px #000; }
       .hidden { display: none !important; }
-      #hud { position: fixed; top: 10px; right: 14px; text-align: right; color: #e8d4ac; font: 700 28px Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; }
-      #hud small { display: block; font-size: 13px; opacity: .7; }
-      #combo { font-size: 15px; color: #ffb070; min-height: 18px; }
-      #mult { font-size: 34px; color: #ff6a2a; text-shadow: 0 0 14px #ff3a0088; min-height: 40px; }
+      #loading-wrap { width: min(70vw, 320px); height: 6px; border: 1px solid #d9a44188; background: #0008; }
+      #load-bar { height: 100%; width: 0; background: linear-gradient(90deg, #8a1c1c, var(--ember)); transition: width .2s; }
+      #hud { position: fixed; top: 10px; right: 12px; min-width: 190px; padding: 8px 18px 10px; text-align: right; color: var(--parch); font: 700 28px Cinzel, Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; background: url('./art/ui/hud_frame.png') center / 100% 100% no-repeat; }
+      #hud small { display: block; font-size: 12px; opacity: .75; letter-spacing: .08em; }
+      #combo { position: fixed; top: 92px; right: 18px; font: 700 15px Cinzel, Georgia, serif; color: #ffb070; text-shadow: 0 0 6px #000; pointer-events: none; }
+      #mult { position: fixed; top: 112px; right: 14px; width: 84px; height: 84px; background: center / contain no-repeat; font-size: 0; pointer-events: none; }
+      #mult.m2 { background-image: url('./art/ui/combo_x2.png'); }
+      #mult.m3 { background-image: url('./art/ui/combo_x3.png'); }
+      #mult.m5 { background-image: url('./art/ui/combo_x5.png'); }
       #mult.pulse { animation: pulse .35s ease-out; }
       @keyframes pulse { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
       #pop { position: fixed; top: 34%; width: 100%; text-align: center; pointer-events: none; }
-      .pop { font: 700 22px Georgia, serif; color: #f0dcb4; text-shadow: 0 0 10px #ff4a00; animation: rise .9s ease-out forwards; }
+      .pop { font: 700 22px Cinzel, Georgia, serif; color: var(--parch); text-shadow: 0 0 10px #ff4a00; animation: rise .9s ease-out forwards; }
       .pop.near { color: #ffcc66; font-size: 26px; }
-      .pop.tier { color: #ff6a2a; font-size: 44px; }
+      .pop.tier { color: var(--ember); font: 400 52px 'Pirata One', Georgia, serif; }
       @keyframes rise { 0% { opacity: 0; transform: translateY(10px) scale(.9); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px) scale(1.05); } }
-      #pause-btn { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); font: 700 16px Georgia, serif; color: #e8d4ac; background: #0008; border: 1px solid #a8572a; padding: 6px 14px; cursor: pointer; }
-      .record { color: #ffb040; font-weight: 700; letter-spacing: .2em; text-shadow: 0 0 12px #ff5a00; animation: pulse .6s ease-out infinite alternate; }
+      #biome { position: fixed; top: 22%; width: 100%; text-align: center; font: 400 clamp(30px, 7vw, 54px) 'Pirata One', Georgia, serif; color: var(--parch); letter-spacing: .08em; text-shadow: 0 0 18px #000, 0 0 30px #ff5a1f55; opacity: 0; pointer-events: none; }
+      #biome.show { animation: biome 3.2s ease-out forwards; }
+      @keyframes biome { 0% { opacity: 0; letter-spacing: .3em; } 20% { opacity: 1; letter-spacing: .1em; } 75% { opacity: 1; } 100% { opacity: 0; } }
+      #pause-btn { position: fixed; top: 10px; left: 10px; width: 60px; height: 60px; padding: 0; border: 0; background: url('./art/ui/btn_pause.png') center / contain no-repeat; font-size: 0; cursor: pointer; }
+      .panel { padding: 56px 64px; width: min(84vw, 520px); box-sizing: border-box; aspect-ratio: 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: url('./art/ui/gameover_panel.png') center / 100% 100% no-repeat; }
+      .panel h1 { color: #c8302a; text-shadow: 0 0 22px #8a1c1c, 0 3px 0 #000; font-size: clamp(40px, 10vw, 68px); }
+      .record { width: min(70vw, 380px); animation: recpulse .6s ease-out infinite alternate; }
+      @keyframes recpulse { 0% { transform: scale(1); } 100% { transform: scale(1.06); } }
+      .big { font-size: 26px !important; opacity: 1 !important; color: var(--gold); }
+      @media (max-height: 500px) { .panel { aspect-ratio: auto; padding: 28px 40px; } .logo { width: min(50vw, 420px); } }
     </style>
   </head>
   <body>
     <div id="app"></div>
-    <div id="hud" class="hidden"><span id="score">0</span><small>BEST <span id="best">0</span> · <span id="speed"></span></small><div id="combo"></div><div id="mult"></div></div>
+    <div id="hud" class="hidden"><span id="score">0</span><small>BEST <span id="best">0</span> · <span id="speed"></span></small></div>
+    <div id="combo"></div><div id="mult"></div>
     <div id="pop"></div>
-    <button id="pause-btn" class="hidden" aria-label="Pause">II</button>
-    <div id="pause" class="screen hidden"><h1>PAUSED</h1><button id="resume-btn">RESUME</button></div>
-    <div id="title" class="screen"><h1>ASHEN RUN</h1><p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide. Esc to pause.</p><p>BEST <span id="title-best">0</span></p><button id="play-btn">RUN</button></div>
-    <div id="over" class="screen hidden"><h1>YOU DIED</h1><p class="record hidden" id="new-record">NEW RECORD</p><p style="font-size:28px;opacity:1">Score <span id="final-score">0</span></p><p>Distance <span id="final-dist">0</span> m · Best <span id="final-best">0</span></p><button id="restart-btn">RISE AGAIN</button></div>
+    <div id="biome"></div>
+    <button id="pause-btn" class="hidden" aria-label="Pause">Pause</button>
+    <div id="pause" class="screen hidden"><h1>Paused</h1><button class="btn" id="resume-btn">RESUME</button></div>
+    <div id="title" class="screen">
+      <img class="logo" src="./art/ui/logo_ashen_run_text_alpha.png" alt="Ashen Run" />
+      <p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide. Esc to pause.</p>
+      <p>BEST <span id="title-best">0</span></p>
+      <div id="loading"><div id="loading-wrap"><div id="load-bar"></div></div></div>
+      <button class="btn hidden" id="play-btn">RUN</button>
+    </div>
+    <div id="over" class="screen hidden"><div class="panel">
+      <h1>You Died</h1>
+      <img class="record hidden" id="new-record" src="./art/ui/new_record_banner.png" alt="New record" />
+      <p class="big">Score <span id="final-score">0</span></p>
+      <p>Distance <span id="final-dist">0</span> m · Best <span id="final-best">0</span></p>
+      <button class="btn" id="restart-btn">RISE AGAIN</button>
+    </div></div>
     <div id="fps"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

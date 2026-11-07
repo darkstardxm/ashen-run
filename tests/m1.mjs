@@ -9,7 +9,7 @@ const errs = [];
 let p = await b.newPage();
 p.on('pageerror', e => errs.push(e.message));
 await p.setViewport({ width: 1280, height: 720 });
-await p.goto(URL, { waitUntil: 'load' });
+await p.goto(URL, { waitUntil: "load" }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
 await sleep(800);
 await p.screenshot({ path: '/workspace/runner-docs/m1-title.png' });
 await p.click('#play-btn'); await sleep(300);
@@ -38,7 +38,7 @@ await p.close(); console.log('desktop', JSON.stringify(out));
 const m = await b.newPage();
 m.on('pageerror', e => errs.push(e.message));
 await m.emulate(KnownDevices['iPhone 13']);
-await m.goto(URL, { waitUntil: 'load' }); await sleep(500);
+await m.goto(URL, { waitUntil: "load" }); await m.waitForFunction(() => window.__runner?.ready, { timeout: 60000 }); await sleep(500);
 await m.tap('#play-btn'); await sleep(300);
 const cdp = await m.createCDPSession();
 async function swipe(x0, y0, x1, y1) {
