@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><defs><radialGradient id="f" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#2a2422"/><stop offset="1" stop-color="#0e0c0b"/></radialGradient>
+<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2cf7a"/><stop offset=".5" stop-color="#d9a441"/><stop offset="1" stop-color="#7a5a32"/></linearGradient>
+<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="b"/><feFlood flood-color="#ff7a1f" flood-opacity=".55"/><feComposite in2="b" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<path d="M128 8 L213 43 L248 128 L213 213 L128 248 L43 213 L8 128 L43 43 Z" fill="url(#f)" stroke="url(#g)" stroke-width="8" stroke-linejoin="round"/>
+<path d="M128 26 L200 56 L230 128 L200 200 L128 230 L56 200 L26 128 L56 56 Z" fill="none" stroke="#7a5a32" stroke-width="3" opacity=".9"/><g filter="url(#glow)"><path d="M100 78 L182 128 L100 178 Z" fill="url(#g)" stroke="#3a2a14" stroke-width="3" stroke-linejoin="round"/></g></svg>

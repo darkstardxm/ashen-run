@@ -7,9 +7,9 @@ const out = {}, errs = [];
 const p = await b.newPage();
 p.on('pageerror', e => errs.push(e.message));
 await p.setViewport({ width: 1280, height: 720 });
-await p.goto(URL, { waitUntil: 'load' }); await sleep(600);
+await p.goto(URL, { waitUntil: "load" }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 }); await sleep(600);
 await p.evaluate(() => localStorage.removeItem('ashenrun.best'));
-await p.reload({ waitUntil: 'load' }); await sleep(500);
+await p.reload({ waitUntil: "load" }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 }); await sleep(500);
 out.titleBestFresh = await p.$eval('#title-best', e => e.textContent);
 await p.click('#play-btn'); await sleep(200);
 // In-page autopilot: dodge using obstacle data, to exercise combos.
@@ -22,13 +22,13 @@ await p.evaluate(() => {
     const mine = ahead.filter(o => o.lane === s.lane).sort((a, b) => b.mesh.position.z - a.mesh.position.z)[0];
     if (!mine) return;
     const z = mine.mesh.position.z;
-    if (mine.type === 'wall') {
+    if ((mine.type === 'wall' || mine.kind === 'vent')) {
       for (const l of [s.lane - 1, s.lane + 1].filter(l => l >= -1 && l <= 1).sort(() => Math.random() - .5)) {
         if (!ahead.some(o => o.lane === l && o.mesh.position.z > -12)) { send(l < s.lane ? 'left' : 'right'); return; }
       }
       for (const l of [-1, 0, 1]) if (l !== s.lane && !ahead.some(o => o.lane === l && o.type === 'wall')) { send(l < s.lane ? 'left' : 'right'); return; }
-    } else if ((mine.type === 'low' || mine.type === 'gap') && z > -0.18 * s.speed - 1.2 && s.grounded) send('jump');
-    else if (mine.type === 'high' && z > -0.15 * s.speed - 1 && s.slideT <= 0) send('slide');
+    } else if ((mine.type === 'low' || mine.type === 'gap' || mine.kind === 'ceiling') && z > -0.18 * s.speed - 1.2 && s.grounded) send('jump');
+    else if ((mine.type === 'high' || mine.kind === 'censer') && z > -0.15 * s.speed - 1 && s.slideT <= 0) send('slide');
   }, 30);
 });
 let maxCombo = 0, maxMult = 1;
@@ -61,7 +61,7 @@ out.finalScore = await p.$eval('#final-score', e => +e.textContent);
 out.newRecordShown = await p.$eval('#new-record', e => !e.classList.contains('hidden'));
 out.storedBest = await p.evaluate(() => localStorage.getItem('ashenrun.best'));
 await p.screenshot({ path: '/workspace/runner-docs/m2-over.png' });
-await p.reload({ waitUntil: 'load' }); await sleep(500);
+await p.reload({ waitUntil: "load" }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 }); await sleep(500);
 out.titleBestAfterReload = await p.$eval('#title-best', e => e.textContent);
 await p.click('#play-btn'); await sleep(300);
 out.hudBestAfterReload = await p.$eval('#best', e => e.textContent);
@@ -69,7 +69,7 @@ out.restartScoreReset = await p.evaluate(() => window.__runner.score.value < 50)
 // mobile pause button
 const m = await b.newPage(); m.on('pageerror', e => errs.push(e.message));
 await m.emulate(KnownDevices['iPhone 13']);
-await m.goto(URL, { waitUntil: 'load' }); await sleep(400);
+await m.goto(URL, { waitUntil: "load" }); await m.waitForFunction(() => window.__runner?.ready, { timeout: 60000 }); await sleep(400);
 out.mobileTitleBest = await m.$eval('#title-best', e => e.textContent);
 await m.tap('#play-btn'); await sleep(400);
 await m.tap('#pause-btn'); await sleep(150);

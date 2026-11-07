@@ -1,0 +1,9 @@
+{
+ "biome": "bone_catacombs",
+ "top": "#0a0c09",
+ "horizon": "#3a4436",
+ "bottom": "#151a13",
+ "fog": "#2e352c",
+ "horizon_v": 0.547,
+ "note": "Equirect: row 560 (v=0.547) = horizon line, ruins sit above it. Use as scene.background with texture.mapping=THREE.EquirectangularReflectionMapping, colorSpace=SRGB. Gradient fallback: lerp top->horizon over v 0..0.5, horizon->bottom over 0.5..0.7."
+}
