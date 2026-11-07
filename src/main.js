@@ -1,3 +1,4 @@
+import { Audio } from './audio.js';
 import * as THREE from 'three';
 import { Input } from './input.js';
 import { Obstacles } from './obstacles.js';
@@ -56,6 +57,22 @@ scene.add(fill);
 
 const input = new Input(renderer.domElement);
 const score = new Score();
+const audio = new Audio();
+audio.setMode('title');
+// Browsers only allow audio after a gesture, so the first tap or key wakes it up.
+const wake = () => audio.unlock();
+window.addEventListener('pointerdown', wake);
+window.addEventListener('keydown', wake);
+window.addEventListener('touchend', wake); // older iOS only unlocks audio on touchend
+const buzz = (ms) => { if (!audio.muted) navigator.vibrate?.(ms); };
+function syncMuteBtn() {
+  const b = $('mute-btn');
+  b.classList.toggle('muted', audio.muted);
+  b.setAttribute('aria-label', audio.muted ? 'Unmute' : 'Mute');
+}
+$('mute-btn').addEventListener('click', (e) => { e.stopPropagation(); audio.unlock(); audio.toggleMute(); syncMuteBtn(); });
+window.addEventListener('keydown', (e) => { if (e.code === 'KeyM' && !e.repeat) { audio.toggleMute(); syncMuteBtn(); } });
+syncMuteBtn();
 $('title-best').textContent = score.best;
 
 const state = {
@@ -70,7 +87,8 @@ const state = {
 };
 
 let world = null; // built after assets load
-window.__runner = { state, input, score, ready: false, renderer, pr: () => pixelRatio };
+window.__runner = {
+    audio, state, input, score, ready: false, renderer, pr: () => pixelRatio };
 
 loadAssets((p) => { $('load-bar').style.width = `${Math.round(p * 100)}%`; })
   .then((assets) => {
@@ -164,6 +182,7 @@ function buildWorld(assets) {
   scene.add(w.embers);
 
   const fxApi = {
+    sound: (name, arg) => audio.play(name, arg),
     dust: (pos, size) => w.dust.spawn(new THREE.Vector3(pos.x, size * 0.35, pos.z), size, BIOMES[state.biome].dust, 0.8),
     fireJet: (mesh) => addJet(w, mesh),
   };
@@ -227,6 +246,10 @@ function setSlotBiome(slot) {
 }
 
 function resetRun() {
+  audio.unlock();
+  audio.setBiome(BIOMES[0].id);
+  audio.setSpeed(BASE_SPEED, BASE_SPEED, MAX_SPEED);
+  audio.setMode('run');
   Object.assign(state, {
     mode: 'running', lane: 0, x: 0, y: 0, vy: 0, grounded: true, slideT: 0, sinceJump: 9,
     speed: BASE_SPEED, elapsed: 0, distance: 0, dyingT: 0, landT: 0, shake: 0,
@@ -252,6 +275,9 @@ function die(hit) {
   state.shake = 0.6;
   const z = hit ? Math.min(0.3, hit.mesh.position.z) : -0.4;
   world.sparks.spawn(new THREE.Vector3(state.x, state.y + 1.1, z), 1.6, 0xffc080);
+  audio.play('hit');
+  buzz([40, 30, 80]);
+  audio.setMode('off');
 }
 
 function showGameOver() {
@@ -262,13 +288,16 @@ function showGameOver() {
   $('final-best').textContent = score.best;
   $('title-best').textContent = score.best;
   $('new-record').classList.toggle('hidden', !record);
+  audio.setMode('over');
+  audio.play('gameover');
+  if (record) setTimeout(() => audio.play('record'), 700);
   $('over').classList.remove('hidden');
   $('pause-btn').classList.add('hidden');
 }
 
 function setPaused(on) {
-  if (on && state.mode === 'running') { state.mode = 'paused'; $('pause').classList.remove('hidden'); }
-  else if (!on && state.mode === 'paused') { state.mode = 'running'; $('pause').classList.add('hidden'); clock.getDelta(); }
+  if (on && state.mode === 'running') { state.mode = 'paused'; $('pause').classList.remove('hidden'); audio.setPaused(true); }
+  else if (!on && state.mode === 'paused') { state.mode = 'running'; $('pause').classList.add('hidden'); clock.getDelta(); audio.setPaused(false); }
 }
 $('pause-btn').addEventListener('click', () => setPaused(state.mode === 'running'));
 $('resume-btn').addEventListener('click', () => setPaused(false));
@@ -298,6 +327,8 @@ function showBiomeName(i) {
   const el = $('biome');
   el.textContent = BIOMES[i].name;
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  audio.setBiome(BIOMES[i].id);
+  if (i !== 0 || state.distance > 10) audio.play('biome');
 }
 
 function startOrRestart() {
@@ -305,6 +336,14 @@ function startOrRestart() {
 }
 $('play-btn').addEventListener('click', startOrRestart);
 $('restart-btn').addEventListener('click', startOrRestart);
+$('home-btn').addEventListener('click', () => {
+  if (state.mode !== 'over') return;
+  state.mode = 'title';
+  $('over').classList.add('hidden'); $('hud').classList.add('hidden');
+  $('title').classList.remove('hidden');
+  $('combo').textContent = ''; $('mult').className = '';
+  audio.setMode('title');
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -340,17 +379,18 @@ function handleInput(dt) {
     if (a === 'pause') { setPaused(true); continue; }
     if (a === 'left' || a === 'right') {
       const nl = Math.max(-1, Math.min(1, state.lane + (a === 'left' ? -1 : 1)));
-      if (nl !== state.lane) { state.prevLane = state.lane; state.lane = nl; state.laneChangeT = 0; }
+      if (nl !== state.lane) { state.prevLane = state.lane; state.lane = nl; state.laneChangeT = 0; audio.play('lane', nl - state.prevLane); }
     }
     else if (a === 'jump') state.bufferedJump = BUFFER_TIME;
     else if (a === 'slide') state.bufferedSlide = BUFFER_TIME;
   }
   if (state.bufferedJump > 0 && state.grounded) {
     state.vy = JUMP_VELOCITY; state.grounded = false; state.slideT = 0; state.bufferedJump = 0; state.sinceJump = 0; state.landT = 0;
+    audio.play('jump');
   }
   if (state.bufferedSlide > 0) {
     if (state.grounded) {
-      if (state.slideT <= 0) world.dust.spawn(new THREE.Vector3(state.x, 0.4, 0.2), 1.3, BIOMES[state.biome].dust, 0.7);
+      if (state.slideT <= 0) { world.dust.spawn(new THREE.Vector3(state.x, 0.4, 0.2), 1.3, BIOMES[state.biome].dust, 0.7); audio.play('slide'); }
       state.slideT = SLIDE_TIME; state.bufferedSlide = 0; state.landT = 0;
     }
     else state.vy = Math.min(state.vy, -18); // fast-fall into slide
@@ -371,6 +411,7 @@ function updateRunner(dt) {
       state.y = 0; state.vy = 0; state.grounded = true;
       if (state.bufferedSlide <= 0) state.landT = LAND_TIME;
       world.dust.spawn(new THREE.Vector3(state.x, 0.4, 0.2), 1.4, BIOMES[state.biome].dust, 0.7);
+      audio.play('land');
     }
   }
   if (state.slideT > 0) state.slideT -= dt;
@@ -456,6 +497,9 @@ function tick() {
     if (newSpeed > state.speed) {
       state.speed = newSpeed; camera.fov += 7;
       world.burst.spawn(new THREE.Vector3(state.x, 1.1, 0), 3, 0xffffff, 0.9);
+      audio.setSpeed(state.speed, BASE_SPEED, MAX_SPEED);
+      audio.play('speedup');
+      state.shake = Math.max(state.shake, 0.18);
     }
     updateRunner(dt);
     world.obstacles.update(dt, state.speed, state.elapsed, state.distance, t);
@@ -463,9 +507,9 @@ function tick() {
     if (hit && !state.god) die(hit);
     else scorePassed();
     for (const e of score.drain()) {
-      if (e.type === 'clear') popText(`+${e.pts}`, 'clear');
-      else if (e.type === 'near') popText(`NEAR MISS +${e.pts}`, 'near');
-      else if (e.type === 'tier') popText(`x${e.mult}`, 'tier');
+      if (e.type === 'clear') { popText(`+${e.pts}`, 'clear'); audio.play('clear'); }
+      else if (e.type === 'near') { popText(`NEAR MISS +${e.pts}`, 'near'); audio.play('near'); }
+      else if (e.type === 'tier') { popText(`x${e.mult}`, 'tier'); audio.play('tier', e.mult); buzz(15); }
     }
     updateHud();
     speedEl.textContent = `${state.speed.toFixed(0)} m/s`;
