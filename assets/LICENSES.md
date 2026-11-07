@@ -11,4 +11,4 @@
 
 The per-file provenance log from the art batch is in [art/LICENSES-batch1.md](art/LICENSES-batch1.md).
 
-No audio yet. Audio lands in M4.
+Audio: there are no audio files. All music and SFX are synthesized at runtime by `src/audio.js`, original to this project. See [audio/README.md](audio/README.md).

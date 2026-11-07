@@ -172,6 +172,8 @@ export class Obstacles {
       o.swing += dt * 2.2;
       const a = Math.sin(o.swing) * 0.32;
       o.pivot.rotation.z = a;
+      if (z > -45 && z < 2 && Math.sign(a) !== Math.sign(o.lastA || a)) this.fx.sound?.('censer', o.lane);
+      o.lastA = a;
       o.dx = Math.sin(a) * 3.05;
       o.dy = 3.05 * (1 - Math.cos(a));
       if (o.tele) o.tele.emissiveIntensity = o.teleBase * (0.6 + 0.4 * Math.abs(Math.sin(o.swing * 2)));
@@ -185,9 +187,10 @@ export class Obstacles {
       if (o.phase === 'tele' && o.t >= TELEGRAPH) {
         o.phase = 'live'; o.live = true;
         o.fire = this.fx.fireJet(o.mesh);
+        this.fx.sound?.('vent', -z);
       }
     } else {
-      if (o.phase === 'tele' && o.t < dt * 1.5) this.fx.dust(o.mesh.position, 3.5);
+      if (o.phase === 'tele' && o.t < dt * 1.5) { this.fx.dust(o.mesh.position, 3.5); this.fx.sound?.('rumble'); }
       if (o.phase === 'tele' && o.t >= TELEGRAPH) o.phase = 'drop';
       if (o.phase === 'drop') {
         let landed = 0;
@@ -199,6 +202,7 @@ export class Obstacles {
         if (landed === o.pieces.length) {
           o.phase = 'live'; o.live = true;
           this.fx.dust(o.mesh.position, 2.2);
+          this.fx.sound?.('crash');
         }
       }
     }
