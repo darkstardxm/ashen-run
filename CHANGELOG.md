@@ -3,6 +3,9 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### Fixed
+- Going back to the title after dying left the obstacle that killed you stuck to the runner. The run is now fully cleared on the way back.
+- Title instructions got cut off on narrow screens. They now wrap, and phones get touch-only instructions.
 ### Added
 - M4 audio and polish: a procedural industrial metal soundtrack (per-biome riffs, tempo 132 to 168 BPM, layers build with speed) plus a full SFX set for moves, scoring, hazards, hits and game over. Mute button and M key, saved between visits. Audio pauses with the game. Back-to-title button on game over. Soft limiter on the mix, camera nudge on speed-up, and phone vibration on death and combo tier-up.
 - M3 art and biomes: art batch 1 integrated (rigged runner with run, lean, jump, land, slide, hit and death clips; per-biome track, scenery, obstacles, skies, VFX and UI). Three biomes (Ashen Cathedral, Ember Forge, Bone Catacombs) with fog, light and sky crossfades and a name banner. Signature hazards: swinging censer, telegraphed fire vent, collapsing ceiling. Loading screen, new fonts and HUD/game-over art. Static scenery is merged per material and the pixel ratio adapts to keep phones smooth.

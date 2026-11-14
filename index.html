@@ -18,7 +18,8 @@
       #fps { position: fixed; bottom: 6px; left: 8px; color: var(--gold); font: 11px monospace; opacity: .5; pointer-events: none; }
       .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--parch); font-family: Cinzel, Georgia, serif; text-align: center; background: radial-gradient(ellipse at center, #0000 25%, #000c 100%); }
       .screen h1 { margin: 0; font: 400 clamp(44px, 11vw, 84px) 'Pirata One', Georgia, serif; letter-spacing: .06em; color: var(--gold); text-shadow: 0 0 22px #ff5a1f99, 0 3px 0 #000; }
-      .screen p { margin: 0; opacity: .8; font-size: 14px; letter-spacing: .04em; max-width: 92vw; }
+      .screen p { margin: 0; opacity: .8; font-size: 14px; letter-spacing: .04em; max-width: min(92vw, 640px); padding: 0 12px; box-sizing: border-box; white-space: normal; text-wrap: balance; }
+      .touch-only { display: none; } @media (pointer: coarse) { .touch-only { display: block; } .desk-only { display: none; } }
       .logo { width: min(86vw, 620px); filter: drop-shadow(0 0 20px #000); }
       .btn { font: 700 18px Cinzel, Georgia, serif; letter-spacing: .2em; min-width: 200px; min-height: 52px; padding: 12px 34px; color: var(--parch); background: linear-gradient(#2a1209ee, #120806ee); border: 2px solid var(--gold); border-radius: 3px; box-shadow: 0 0 18px #ff5a1f44, inset 0 0 12px #000; cursor: pointer; }
       .btn:hover { box-shadow: 0 0 26px #ff5a1f88, inset 0 0 12px #000; }
@@ -67,7 +68,8 @@
     <div id="pause" class="screen hidden"><h1>Paused</h1><button class="btn" id="resume-btn">RESUME</button></div>
     <div id="title" class="screen">
       <img class="logo" src="./art/ui/logo_ashen_run_text_alpha.png" alt="Ashen Run" />
-      <p>Arrows or swipe to move. Space, up, or tap to jump. Down to slide. Esc to pause. M to mute.</p>
+      <p class="desk-only">Arrows to move. Space or up to jump. Down to slide. Esc to pause. M to mute.</p>
+      <p class="touch-only">Swipe to move. Tap or swipe up to jump. Swipe down to slide.</p>
       <p>BEST <span id="title-best">0</span></p>
       <div id="loading"><div id="loading-wrap"><div id="load-bar"></div></div></div>
       <button class="btn hidden" id="play-btn">RUN</button>

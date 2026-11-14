@@ -338,7 +338,16 @@ $('play-btn').addEventListener('click', startOrRestart);
 $('restart-btn').addEventListener('click', startOrRestart);
 $('home-btn').addEventListener('click', () => {
   if (state.mode !== 'over') return;
-  state.mode = 'title';
+  // Clear the run that just ended so nothing from it lingers behind the title screen.
+  Object.assign(state, {
+    mode: 'title', lane: 0, prevLane: 0, x: 0, y: 0, vy: 0, grounded: true, slideT: 0, sinceJump: 9, landT: 0,
+    speed: BASE_SPEED, elapsed: 0, distance: 0, dyingT: 0, shake: 0, bufferedJump: 0, bufferedSlide: 0, biome: 0,
+  });
+  world.obstacles.reset();
+  for (const j of [...world.jets]) j.done();
+  layoutTrack(world);
+  world.runner.root.position.set(0, 0, 0);
+  world.runner.root.rotation.set(0, 0, 0);
   $('over').classList.add('hidden'); $('hud').classList.add('hidden');
   $('title').classList.remove('hidden');
   $('combo').textContent = ''; $('mult').className = '';
