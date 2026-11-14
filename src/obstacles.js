@@ -104,6 +104,14 @@ export class Obstacles {
       wall: { root: wall, d: { ...boxFromCollider(colliderOf(wall, 'broken_wall')), w: 1.9 } },
       sig: { root: sig, kind: SIG_KIND[b.signature], d: this.sigBox(SIG_KIND[b.signature], sig) },
     };
+    const gapSrc = assets.biomes[b.id].gap;
+    if (gapSrc) {
+      // gap_lane runs from its origin toward -Z (3 m); centre it so it matches the collision box.
+      const root = new THREE.Group();
+      gapSrc.position.z = 1.5;
+      root.add(gapSrc);
+      this.tpl[bi].gap = { root, d: { w: 2.0, h: 0.42, d: 3.0, y: -0.2 } };
+    }
   }
 
   reset() {
@@ -139,7 +147,10 @@ export class Obstacles {
   }
 
   make(type, biome) {
-    if (type === 'gap') return { mesh: this.gapTpl.clone(), d: this.gapD, live: true };
+    if (type === 'gap') {
+      const g = this.tpl[biome].gap;
+      return g ? { mesh: g.root.clone(), d: g.d, live: true } : { mesh: this.gapTpl.clone(), d: this.gapD, live: true };
+    }
     const t = this.tpl[biome][type];
     const mesh = t.root.clone();
     const item = { mesh, d: t.d, live: true, dx: 0 };

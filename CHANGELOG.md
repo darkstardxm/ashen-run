@@ -3,6 +3,10 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+### Art batch 2
+- Per-lane pit model (gap_lane.glb) for every biome replaces the flat procedural pit; procedural pit stays as a fallback.
+- Runner knee pop in the run cycle and death-fall knee dip fixed.
+- Ember Forge: doubled rivets and z-fighting fixed (retiled wall, re-exported obstacles and scenery).
 ### Performance
 - Recompressed models (WebP textures, 512 px normal maps), VFX sheets and game-over panel to WebP.
 - Ember Forge and Bone Catacombs now stream in after the game starts; only the runner, VFX and Ashen Cathedral block the loading screen.

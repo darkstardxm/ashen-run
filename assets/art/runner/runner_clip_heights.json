@@ -1,24 +1,24 @@
 {
  "death_fall": {
-  "max_height_m": 1.883,
-  "max_at": [
-   "head",
-   1
-  ],
-  "min_top_m": 0.463,
-  "lowest_point_m": -0.131,
-  "lowest_at": [
-   "shin.L",
-   17
-  ]
- },
- "hit": {
   "max_height_m": 1.88,
   "max_at": [
    "head",
    0
   ],
-  "min_top_m": 1.748,
+  "min_top_m": 0.463,
+  "lowest_point_m": -0.042,
+  "lowest_at": [
+   "foot.L",
+   5
+  ]
+ },
+ "hit": {
+  "max_height_m": 1.882,
+  "max_at": [
+   "head",
+   1
+  ],
+  "min_top_m": 1.742,
   "lowest_point_m": -0.028,
   "lowest_at": [
    "foot.L",
@@ -29,7 +29,7 @@
   "max_height_m": 1.967,
   "max_at": [
    "head",
-   12
+   16
   ],
   "min_top_m": 1.967,
   "lowest_point_m": 0.141,
@@ -44,70 +44,70 @@
    "head",
    0
   ],
-  "min_top_m": 1.779,
-  "lowest_point_m": 0.078,
+  "min_top_m": 1.775,
+  "lowest_point_m": 0.072,
   "lowest_at": [
    "foot.R",
-   5
+   6
   ]
  },
  "jump_takeoff": {
-  "max_height_m": 1.993,
+  "max_height_m": 1.999,
   "max_at": [
    "head",
-   7
+   9
   ],
-  "min_top_m": 1.733,
-  "lowest_point_m": -0.019,
+  "min_top_m": 1.727,
+  "lowest_point_m": -0.023,
   "lowest_at": [
    "foot.L",
-   6
+   7
   ]
  },
  "lean_left": {
   "max_height_m": 1.911,
   "max_at": [
    "head",
-   12
+   15
   ],
   "min_top_m": 1.838,
-  "lowest_point_m": 0.014,
+  "lowest_point_m": 0.018,
   "lowest_at": [
    "foot.L",
-   3
+   4
   ]
  },
  "lean_right": {
   "max_height_m": 1.911,
   "max_at": [
    "head",
-   12
+   15
   ],
   "min_top_m": 1.838,
-  "lowest_point_m": 0.014,
+  "lowest_point_m": 0.018,
   "lowest_at": [
    "foot.R",
-   11
+   14
   ]
  },
  "run_loop": {
   "max_height_m": 1.951,
   "max_at": [
    "head",
-   12
+   15
   ],
   "min_top_m": 1.88,
-  "lowest_point_m": 0.021,
+  "lowest_point_m": 0.025,
   "lowest_at": [
-   "foot.L",
-   3
+   "foot.R",
+   14
   ]
  },
  "slide": {
-  "max_height_m": 0.936,
+  "max_height_m": 0.937,
   "max_at": [
    "head",
-   5
+   6
   ],
   "min_top_m": 0.927,
   "lowest_point_m": -0.038,
