@@ -42,6 +42,12 @@ const PATTERNS = [
 
 const SIG_KIND = { swinging_censer: 'censer', fire_jet_vent: 'vent', collapsing_ceiling: 'ceiling' };
 
+// gap_lane pit_void drawn first as an invisible stencil mask (ref 1); the track floor skips those pixels (assets.js cutFloor).
+const PIT_MASK = new THREE.MeshBasicMaterial({
+  colorWrite: false, depthWrite: false,
+  stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp,
+});
+
 function boxFromCollider(c, pad = {}) {
   const [w, h, d] = c.size, [, cy] = c.center;
   return { w: pad.w ?? w, h, d: Math.max(MIN_DEPTH, d), y: cy };
@@ -107,6 +113,8 @@ export class Obstacles {
     const gapSrc = assets.biomes[b.id].gap;
     if (gapSrc) {
       // gap_lane runs from its origin toward -Z (3 m); centre it so it matches the collision box.
+      gapSrc.getObjectByName('pit_void')?.traverse((m) => { if (m.isMesh) { m.material = PIT_MASK; m.renderOrder = -1; } });
+      this.collectCues(gapSrc); // cue_gap_* edge light and void_pit_* walls: no fog, breathing like the other cues
       const root = new THREE.Group();
       gapSrc.position.z = 1.5;
       root.add(gapSrc);

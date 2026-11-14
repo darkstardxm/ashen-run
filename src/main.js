@@ -27,7 +27,8 @@ const LAND_TIME = 0.3;
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+// stencil: gap_lane pits cut the track floor (see assets.js cutFloor / obstacles.js PIT_MASK)
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', stencil: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
