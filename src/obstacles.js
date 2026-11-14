@@ -141,6 +141,9 @@ export class Obstacles {
     let biome = biomeIndexAt(distance - z);
     if (!this.tpl[biome]) biome = 0; // not streamed in yet
     const row = { id: ++this.rowId, scored: false };
+    const occ = [null, null, null];
+    for (const r of pat.rows) (flip ? [...r].reverse() : r).forEach((t, i) => { if (t) occ[i] = t; });
+    this.onRow?.(z, occ);
     for (const r of pat.rows) {
       const lanes = flip ? [...r].reverse() : r;
       lanes.forEach((type, i) => {

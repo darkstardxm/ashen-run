@@ -3,6 +3,8 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## v2 (in progress)
+
+- Souls: glowing soul lines spawn along free lanes, arcing over low walls and pits and dipping under high bars. Grab them with a short magnet pull. Each one is worth 5 points. The run's souls bank on death into a saved total (`ashenrun.souls`) shown on the HUD, game-over, and title screens. New `tests/souls.mjs`.
 ### World
 - Ground and low walls along both sides of the causeway (placeholders built from each biome's track materials; art batch 4 side kits will replace them). Props no longer float.
 

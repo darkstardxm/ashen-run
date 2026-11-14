@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs';
 const url = process.argv[2] || 'http://localhost:4173';
 const out = process.argv[3] || 'test-out';
 mkdirSync(out, { recursive: true });
-const tests = ['m1', 'm2', 'm3', 'm4', 'home', 'pwa'];
+const tests = ['m1', 'm2', 'm3', 'm4', 'home', 'pwa', 'souls'];
 const dir = new URL('.', import.meta.url).pathname;
 const run = (t) => new Promise((res) => {
   const t0 = Date.now(); let log = '';
