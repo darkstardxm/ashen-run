@@ -1,0 +1,17 @@
+import puppeteer from 'puppeteer-core';
+const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const pg = await b.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+const url = process.argv[2] || 'http://localhost:4173';
+await pg.goto(url, { waitUntil: 'load' });
+await pg.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
+await pg.waitForFunction(() => navigator.serviceWorker?.controller || navigator.serviceWorker.ready.then(()=>true), { timeout: 20000 });
+const cdp = await pg.target().createCDPSession();
+const m = await cdp.send('Page.getAppManifest');
+const inst = await cdp.send('Page.getInstallabilityErrors').catch(e => ({ e: e.message }));
+await pg.reload({ waitUntil: 'load' });
+await pg.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
+await pg.setOfflineMode(true);
+await pg.reload({ waitUntil: 'load' });
+const off = await pg.waitForFunction(() => window.__runner?.ready, { timeout: 30000 }).then(() => true, () => false);
+console.log(JSON.stringify({ manifestErrors: m.errors, installErrors: inst.installabilityErrors ?? inst, offlineReady: off, errs }));
+await b.close();
