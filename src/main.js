@@ -176,11 +176,40 @@ function buildWorld(assets) {
 
 // Bake a static group into one mesh per material, cutting draw calls a lot.
 // Attributes are normalised to plain float arrays first so mixed source files can merge.
+// Ground and walls beside the causeway, so props stand on something (v2 M1).
+// Uses the biome's side_* art when present; until then, placeholders built from the track's own floor/wall materials.
+const SIDE = { groundIn: 3, groundOut: 9.5, wallX: 8, wallH: 5, wallT: 1 };
+function sideKit(a) {
+  const g = new THREE.Group();
+  if (a.side) { // art batch 4: one 12 m piece per side, mirrored
+    for (const sx of [-1, 1]) { const o = a.side.clone(); if (sx < 0) o.scale.x = -1; g.add(o); }
+    return g;
+  }
+  let floor, wall;
+  a.track.traverse((o) => {
+    if (!o.isMesh) return;
+    if (/_floor$/.test(o.material.name)) floor ||= o.material;
+    if (/_wall$/.test(o.material.name)) wall ||= o.material;
+  });
+  const sideFloor = (a._sideFloor ||= floor ? Object.assign(floor.clone(), { name: floor.name + '_side', stencilWrite: false }) : new THREE.MeshStandardMaterial({ color: 0x1a1614 }));
+  const sideWall = wall || new THREE.MeshStandardMaterial({ color: 0x2a2420 });
+  const w = SIDE.groundOut - SIDE.groundIn;
+  for (const sx of [-1, 1]) {
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(w, 12).rotateX(-Math.PI / 2), sideFloor);
+    ground.position.set(sx * (SIDE.groundIn + w / 2), -0.03, -6);
+    const wallM = new THREE.Mesh(new THREE.BoxGeometry(SIDE.wallT, SIDE.wallH, 12), sideWall);
+    wallM.position.set(sx * SIDE.wallX, SIDE.wallH / 2 - 0.03, -6);
+    g.add(ground, wallM);
+  }
+  return g;
+}
+
 // One slot's look for biome bi: track segment, flanking pillars, a side prop, and an arch every 4th slot.
 function buildVariant(assets, bi, i) {
   const b = BIOMES[bi], a = assets.biomes[b.id];
   const g = new THREE.Group();
   g.add(a.track.clone());
+  g.add(sideKit(a));
   const prop = (name, x, z, rotY, s = 1) => {
     const src = a.scenery[name];
     if (!src) return;
