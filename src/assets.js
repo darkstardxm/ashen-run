@@ -18,6 +18,8 @@ function biomeJobs(L, out, b) {
   const jobs = [L.glb(`track/${b.id}_segment.glb`).then((g) => (o.track = g.scene))];
   for (const n of [...OBSTACLES, b.signature]) jobs.push(L.glb(`obstacles/${b.id}/${n}.glb`).then((g) => (o.obstacles[n] = g.scene)));
   for (const n of new Set([...b.scenery, b.pillar, b.arch].filter(Boolean))) jobs.push(L.glb(`scenery/${b.id}/${n}.glb`).then((g) => (o.scenery[n] = g.scene)));
+  // Per-lane pit (art batch 2). Optional: falls back to the procedural pit.
+  jobs.push(L.glb(`obstacles/${b.id}/gap_lane.glb`).then((g) => (o.gap = g.scene), () => {}));
   jobs.push(L.img(`sky/${b.id}_equirect.jpg`).then((t) => (o.sky = t)));
   return jobs;
 }
