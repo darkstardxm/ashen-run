@@ -1,6 +1,6 @@
 # Ashen Run
 
-A dark gothic 3D endless runner for the browser, built with Three.js. You run away from the camera through cursed ruins, dodging traps that get faster and denser the longer you survive. Play it at **https://runner.massoletti.net** (coming soon).
+A dark gothic 3D endless runner for the browser, built with Three.js. You run away from the camera through cursed ruins, dodging traps that get faster and denser the longer you survive. Play it at **https://runner.massoletti.net**.
 
 ## Controls
 | Action | Desktop | Mobile |
@@ -35,7 +35,10 @@ npm run build    # production build into dist/
 npm run preview  # serve the build
 ```
 
-Play-tests live in `tests/` (`m1.mjs` to `m4.mjs`). They use puppeteer-core with a local Chrome: `node tests/m3.mjs http://localhost:4173 out/`.
+Play-tests live in `tests/` and use puppeteer-core with a local Chrome. Run all of them against a build with `npm run build && npm run preview` in one terminal and `npm test` in another. See [tests/README.md](tests/README.md).
+
+## Install on a phone
+Open the site, then use Add to Home Screen (iOS Safari share menu, or the Android Chrome install prompt). After the first visit it plays offline.
 
 ## Deploy
 Cloudflare Pages connected to `main`. Build command `npm run build`, output directory `dist`.

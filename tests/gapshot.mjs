@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer-core';
-const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
 const pg = await b.newPage(); await pg.setViewport({ width: 960, height: 540 });
 const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type()==='error' && errs.push(m.text()));
 await pg.goto('http://localhost:4173', { waitUntil: 'load' });
