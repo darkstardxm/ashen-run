@@ -14,7 +14,7 @@ p.on('pageerror', e => errs.push(e.message));
 p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.setViewport({ width: 1280, height: 720 });
 await p.goto(URL, { waitUntil: 'load' });
-await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
+await p.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
 await p.evaluate(() => localStorage.removeItem('ashenrun.muted'));
 await p.mouse.click(640, 600); await sleep(300); // gesture wakes audio on the title
 out.ctxOnTitle = await p.evaluate(() => window.__runner.audio.ctx?.state);
@@ -79,7 +79,7 @@ out.meanRms = (peaks.reduce((a, x) => a + x[1], 0) / peaks.length).toFixed(3);
 out.silentFrames = peaks.filter(x => x[0] < 0.001).length + '/' + peaks.length;
 // mute persists
 await p.click('#mute-btn'); await sleep(200);
-await p.reload({ waitUntil: 'load' }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
+await p.reload({ waitUntil: 'load' }); await p.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
 out.mutedAfterReload = await p.evaluate(() => window.__runner.audio.muted && document.getElementById('mute-btn').classList.contains('muted'));
 await p.click('#mute-btn');
 out.unmuted = await p.evaluate(() => !window.__runner.audio.muted);

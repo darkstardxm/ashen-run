@@ -1,8 +1,8 @@
 {
  "convention": "Straight (non-premultiplied) alpha PNG. RGB is full-colour under every alpha value, so there is no dark fringe. Use THREE.AdditiveBlending for embers/sparks/fire/burst and NormalBlending for fog/dust (tint via material.color). Frames run left to right, top to bottom; UV of frame i = (i%cols/cols, 1-(floor(i/cols)+1)/rows).",
  "sheets": {
-  "embers_sheet.png": {
-   "file": "embers_sheet.png",
+  "embers_sheet.webp": {
+   "file": "embers_sheet.webp",
    "frame_w": 256,
    "frame_h": 256,
    "cols": 4,
@@ -13,8 +13,8 @@
    "blending": "additive",
    "note": "single ember particle with flicker; spawn many as Points/instanced quads at 0.05-0.15 m, rising 0.5-1.5 m/s"
   },
-  "fog_puff_sheet.png": {
-   "file": "fog_puff_sheet.png",
+  "fog_puff_sheet.webp": {
+   "file": "fog_puff_sheet.webp",
    "frame_w": 512,
    "frame_h": 512,
    "cols": 2,
@@ -25,8 +25,8 @@
    "blending": "normal",
    "note": "4 static variants (pick random frame). White: tint with biome fog colour lightened ~30%. Billboard 4-8 m, opacity 0.2-0.5, slow drift + rotation"
   },
-  "dust_landing_puff_sheet.png": {
-   "file": "dust_landing_puff_sheet.png",
+  "dust_landing_puff_sheet.webp": {
+   "file": "dust_landing_puff_sheet.webp",
    "frame_w": 256,
    "frame_h": 256,
    "cols": 4,
@@ -37,8 +37,8 @@
    "blending": "normal",
    "note": "play once on land/slide start at feet, ground-aligned or billboard ~1.5 m; tint per biome (catacomb: greenish, forge: soot)"
   },
-  "hit_sparks_sheet.png": {
-   "file": "hit_sparks_sheet.png",
+  "hit_sparks_sheet.webp": {
+   "file": "hit_sparks_sheet.webp",
    "frame_w": 256,
    "frame_h": 256,
    "cols": 4,
@@ -49,8 +49,8 @@
    "blending": "additive",
    "note": "play once at impact point, billboard ~1 m, pair with camera shake"
   },
-  "fire_jet_sheet.png": {
-   "file": "fire_jet_sheet.png",
+  "fire_jet_sheet.webp": {
+   "file": "fire_jet_sheet.webp",
    "frame_w": 256,
    "frame_h": 512,
    "cols": 8,
@@ -61,8 +61,8 @@
    "blending": "additive",
    "note": "vertical jet, nozzle at bottom-centre of frame; quad ~1.2 m wide x 3 m tall, use 2 crossed quads. Loop while active"
   },
-  "speedup_ember_burst_sheet.png": {
-   "file": "speedup_ember_burst_sheet.png",
+  "speedup_ember_burst_sheet.webp": {
+   "file": "speedup_ember_burst_sheet.webp",
    "frame_w": 256,
    "frame_h": 256,
    "cols": 4,

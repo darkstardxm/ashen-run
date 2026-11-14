@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+### Performance
+- Recompressed models (WebP textures, 512 px normal maps), VFX sheets and game-over panel to WebP.
+- Ember Forge and Bone Catacombs now stream in after the game starts; only the runner, VFX and Ashen Cathedral block the loading screen.
+
 ## [Unreleased]
 ### Fixed
 - Going back to the title after dying left the obstacle that killed you stuck to the runner. The run is now fully cleared on the way back.

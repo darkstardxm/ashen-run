@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { Obstacles } from './obstacles.js';
 import { Score } from './score.js';
-import { loadAssets } from './assets.js';
+import { loadBiome, loadAssets } from './assets.js';
 import { RunnerModel } from './runner.js';
 import { BIOMES, BIOME_LENGTH, TRANSITION, biomeIndexAt } from './biomes.js';
 import { SheetFX, cropFrame, radialTexture } from './fx.js';
@@ -97,6 +97,7 @@ loadAssets((p) => { $('load-bar').style.width = `${Math.round(p * 100)}%`; })
     // Test hook: jump to a distance and rebuild the track around it.
     window.__runner.warp = (d) => { state.distance = d; world.obstacles.reset(); layoutTrack(world); };
     window.__runner.ready = true;
+    streamBiomes(assets);
     state.mode = 'title';
     $('loading').classList.add('hidden');
     $('play-btn').classList.remove('hidden');
@@ -116,7 +117,7 @@ function buildWorld(assets) {
     return m;
   };
   w.skyA = mkSky(-2); w.skyB = mkSky(-1);
-  w.skies = BIOMES.map((b) => assets.biomes[b.id].sky);
+  w.skies = [assets.biomes[BIOMES[0].id].sky];
 
   // Track: each slot holds one segment + scenery per biome; only one is visible.
   w.track = new THREE.Group();
@@ -124,29 +125,9 @@ function buildWorld(assets) {
   w.slots = [];
   for (let i = 0; i < SEGMENTS; i++) {
     const slot = new THREE.Group();
-    slot.userData.variants = BIOMES.map((b, bi) => {
-      const a = assets.biomes[b.id];
-      const g = new THREE.Group();
-      g.add(a.track.clone());
-      const prop = (name, x, z, rotY, s = 1) => {
-        const src = a.scenery[name];
-        if (!src) return;
-        const o = src.clone();
-        o.position.set(x, 0, z); o.rotation.y = rotY; o.scale.setScalar(s);
-        g.add(o);
-      };
-      // Pillars flank every segment; a random prop sits between them; arches every 4th.
-      prop(b.pillar, -4.6, -1.5, Math.PI / 2); prop(b.pillar, 4.6, -1.5, -Math.PI / 2);
-      const extras = b.scenery.filter((n) => n !== b.pillar);
-      const pick = () => extras[Math.floor(Math.random() * extras.length)];
-      if (i % 2 === 0) prop(pick(), -5.6, -7.5, Math.PI / 2);
-      else prop(pick(), 5.6, -7.5, -Math.PI / 2);
-      if (b.arch && i % 4 === 0) prop(b.arch, 0, -10.5, 0);
-      const merged = mergeStatic(g);
-      merged.visible = bi === 0;
-      slot.add(merged);
-      return merged;
-    });
+    slot.userData.index = i;
+    slot.userData.variants = [buildVariant(assets, 0, i)];
+    slot.add(slot.userData.variants[0]);
     w.track.add(slot);
     w.slots.push(slot);
   }
@@ -192,6 +173,47 @@ function buildWorld(assets) {
 
 // Bake a static group into one mesh per material, cutting draw calls a lot.
 // Attributes are normalised to plain float arrays first so mixed source files can merge.
+// One slot's look for biome bi: track segment, flanking pillars, a side prop, and an arch every 4th slot.
+function buildVariant(assets, bi, i) {
+  const b = BIOMES[bi], a = assets.biomes[b.id];
+  const g = new THREE.Group();
+  g.add(a.track.clone());
+  const prop = (name, x, z, rotY, s = 1) => {
+    const src = a.scenery[name];
+    if (!src) return;
+    const o = src.clone();
+    o.position.set(x, 0, z); o.rotation.y = rotY; o.scale.setScalar(s);
+    g.add(o);
+  };
+  prop(b.pillar, -4.6, -1.5, Math.PI / 2); prop(b.pillar, 4.6, -1.5, -Math.PI / 2);
+  const extras = b.scenery.filter((n) => n !== b.pillar);
+  const pick = () => extras[Math.floor(Math.random() * extras.length)];
+  if (i % 2 === 0) prop(pick(), -5.6, -7.5, Math.PI / 2);
+  else prop(pick(), 5.6, -7.5, -Math.PI / 2);
+  if (b.arch && i % 4 === 0) prop(b.arch, 0, -10.5, 0);
+  const merged = mergeStatic(g);
+  merged.visible = false;
+  return merged;
+}
+
+// Stream in the remaining biomes one by one after the game is playable.
+async function streamBiomes(assets) {
+  for (let bi = 1; bi < BIOMES.length; bi++) {
+    try {
+      await loadBiome(assets, bi);
+    } catch (e) { console.error('biome load failed', BIOMES[bi].id, e); continue; }
+    world.skies[bi] = assets.biomes[BIOMES[bi].id].sky;
+    for (const slot of world.slots) {
+      const v = buildVariant(assets, bi, slot.userData.index);
+      slot.userData.variants[bi] = v; slot.add(v);
+      setSlotBiome(slot);
+    }
+    world.obstacles.addBiome(bi, assets);
+    renderer.compile(scene, camera);
+  }
+  window.__runner.allLoaded = true;
+}
+
 function plainGeometry(src, matrix) {
   const g = new THREE.BufferGeometry();
   for (const [name, a] of Object.entries(src.attributes)) {
@@ -241,8 +263,9 @@ function layoutTrack(w) {
   w.slots.forEach((slot, i) => { slot.position.z = SEGMENT_LENGTH * (1 - i); setSlotBiome(slot); });
 }
 function setSlotBiome(slot) {
-  const bi = biomeIndexAt(state.distance - slot.position.z);
-  slot.userData.variants.forEach((g, i) => { g.visible = i === bi; });
+  let bi = biomeIndexAt(state.distance - slot.position.z);
+  if (!slot.userData.variants[bi]) bi = 0; // not streamed in yet
+  slot.userData.variants.forEach((g, i) => { if (g) g.visible = i === bi; });
 }
 
 function resetRun() {
@@ -471,8 +494,8 @@ function updateBiome(time) {
   key.position.set(...B.key.pos.map((v, i) => THREE.MathUtils.lerp(A.key.pos[i], v, t)));
   key.position.x += state.x; key.target.position.set(state.x, 0, -8);
   world.embers.material.color.copy(lerpHex(A.ember, B.ember, t, cA));
-  world.skyA.material.map = world.skies[prev]; world.skyA.material.opacity = 1;
-  world.skyB.material.map = world.skies[cur]; world.skyB.material.opacity = t;
+  world.skyA.material.map = world.skies[prev] || world.skies[0]; world.skyA.material.opacity = 1;
+  world.skyB.material.map = world.skies[cur] || world.skies[0]; world.skyB.material.opacity = t;
   world.skyA.visible = t < 1;
   torch.intensity = 22 + Math.sin(time * 13) * 3 + Math.sin(time * 7.3) * 2;
 }
