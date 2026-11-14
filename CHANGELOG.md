@@ -3,6 +3,8 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+### Install
+- Installable as an app (web manifest plus service worker). Plays offline after the first visit.
 ### Art batch 2
 - Per-lane pit model (gap_lane.glb) for every biome replaces the flat procedural pit; procedural pit stays as a fallback.
 - Runner knee pop in the run cycle and death-fall knee dip fixed.
