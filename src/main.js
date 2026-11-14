@@ -64,6 +64,8 @@ const wake = () => audio.unlock();
 window.addEventListener('pointerdown', wake);
 window.addEventListener('keydown', wake);
 window.addEventListener('touchend', wake); // older iOS only unlocks audio on touchend
+window.addEventListener('click', wake);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && audio.ctx) audio.unlock(); });
 const buzz = (ms) => { if (!audio.muted) navigator.vibrate?.(ms); };
 function syncMuteBtn() {
   const b = $('mute-btn');
