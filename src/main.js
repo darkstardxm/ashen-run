@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Input } from './input.js';
 import { Obstacles } from './obstacles.js';
 import { Score } from './score.js';
+import { Souls, SOUL_POINTS } from './souls.js';
 import { loadBiome, loadAssets } from './assets.js';
 import { RunnerModel } from './runner.js';
 import { BIOMES, BIOME_LENGTH, TRANSITION, biomeIndexAt } from './biomes.js';
@@ -97,8 +98,10 @@ loadAssets((p) => { $('load-bar').style.width = `${Math.round(p * 100)}%`; })
   .then((assets) => {
     world = buildWorld(assets);
     window.__runner.obstacles = world.obstacles;
+    window.__runner.souls = world.souls;
+    $('title-souls').textContent = world.souls.bank;
     // Test hook: jump to a distance and rebuild the track around it.
-    window.__runner.warp = (d) => { state.distance = d; world.obstacles.reset(); layoutTrack(world); };
+    window.__runner.warp = (d) => { state.distance = d; world.obstacles.reset(); world.souls.items.forEach((x) => world.souls.group.remove(x.mesh)); world.souls.items = []; layoutTrack(world); };
     window.__runner.ready = true;
     streamBiomes(assets);
     state.mode = 'title';
@@ -171,6 +174,8 @@ function buildWorld(assets) {
     fireJet: (mesh) => addJet(w, mesh),
   };
   w.obstacles = new Obstacles(scene, LANE_WIDTH, assets, fxApi);
+  w.souls = new Souls(scene, LANE_WIDTH, { collect: (p) => world.burst.spawn(p.clone(), 0.7, 0x9fe0ff, 0.5) });
+  w.obstacles.onRow = (z, occ) => w.souls.onRow(z, occ);
   return w;
 }
 
@@ -311,6 +316,7 @@ function resetRun() {
     bufferedJump: 0, bufferedSlide: 0, prevLane: 0, laneChangeT: 99, biome: 0,
   });
   world.obstacles.reset();
+  world.souls.reset();
   for (const j of [...world.jets]) j.done();
   layoutTrack(world);
   score.reset();
@@ -338,6 +344,9 @@ function die(hit) {
 function showGameOver() {
   state.mode = 'over';
   const record = score.finish();
+  const total = world.souls.bankRun();
+  $('final-souls').textContent = world.souls.run;
+  $('title-souls').textContent = total;
   $('final-score').textContent = score.value;
   $('final-dist').textContent = Math.floor(state.distance);
   $('final-best').textContent = score.best;
@@ -359,10 +368,11 @@ $('resume-btn').addEventListener('click', () => setPaused(false));
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
 
 // HUD
-const hud = { score: $('score'), best: $('best'), combo: $('combo'), mult: $('mult'), pop: $('pop') };
+const hud = { souls: $('souls'), score: $('score'), best: $('best'), combo: $('combo'), mult: $('mult'), pop: $('pop') };
 let shownMult = 0;
 function updateHud(force) {
   hud.score.textContent = score.value;
+  hud.souls.textContent = world ? world.souls.run : 0;
   hud.best.textContent = Math.max(score.best, score.value);
   hud.combo.textContent = score.combo > 0 ? `${score.combo} combo` : '';
   if (force || shownMult !== score.mult) {
@@ -399,6 +409,7 @@ $('home-btn').addEventListener('click', () => {
     speed: BASE_SPEED, elapsed: 0, distance: 0, dyingT: 0, shake: 0, bufferedJump: 0, bufferedSlide: 0, biome: 0,
   });
   world.obstacles.reset();
+  world.souls.reset();
   for (const j of [...world.jets]) j.done();
   layoutTrack(world);
   world.runner.root.position.set(0, 0, 0);
@@ -567,6 +578,8 @@ function tick() {
     }
     updateRunner(dt);
     world.obstacles.update(dt, state.speed, state.elapsed, state.distance, t);
+    const got = world.souls.update(dt, state.speed * dt, state.x, state.y + (state.slideT > 0 ? 0.45 : 0.9), t);
+    if (got) { score.points += got * SOUL_POINTS; audio.play('soul'); }
     const hit = world.obstacles.hits(runnerBox());
     if (hit && !state.god) die(hit);
     else scorePassed();
@@ -581,6 +594,7 @@ function tick() {
     state.dyingT += rawDt;
     world.runner.root.position.y = Math.max(0, state.y - state.dyingT * 4);
     world.obstacles.update(dt, worldSpeed, state.elapsed, state.distance, t);
+    world.souls.update(dt, worldSpeed * dt, 0, 0, t, false);
     if (state.dyingT > 1.5) showGameOver();
   }
 

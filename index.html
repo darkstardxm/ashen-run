@@ -31,6 +31,7 @@
       #loading-wrap { width: min(70vw, 320px); height: 6px; border: 1px solid #d9a44188; background: #0008; }
       #load-bar { height: 100%; width: 0; background: linear-gradient(90deg, #8a1c1c, var(--ember)); transition: width .2s; }
       #hud { position: fixed; top: 10px; right: 12px; min-width: 190px; padding: 8px 18px 10px; text-align: right; color: var(--parch); font: 700 28px Cinzel, Georgia, serif; text-shadow: 0 0 8px #000; pointer-events: none; background: url('./art/ui/hud_frame.png') center / 100% 100% no-repeat; }
+      .souls { color: #a8e4ff !important; }
       #hud small { display: block; font-size: 12px; opacity: .75; letter-spacing: .08em; }
       #combo { position: fixed; top: 92px; right: 18px; font: 700 15px Cinzel, Georgia, serif; color: #ffb070; text-shadow: 0 0 6px #000; pointer-events: none; }
       #mult { position: fixed; top: 112px; right: 14px; width: 84px; height: 84px; background: center / contain no-repeat; font-size: 0; pointer-events: none; }
@@ -63,7 +64,7 @@
   </head>
   <body>
     <div id="app"></div>
-    <div id="hud" class="hidden"><span id="score">0</span><small>BEST <span id="best">0</span> · <span id="speed"></span></small></div>
+    <div id="hud" class="hidden"><span id="score">0</span><small>BEST <span id="best">0</span> · <span id="speed"></span></small><small class="souls"><span id="souls">0</span> souls</small></div>
     <div id="combo"></div><div id="mult"></div>
     <div id="pop"></div>
     <div id="biome"></div>
@@ -74,7 +75,7 @@
       <img class="logo" src="./art/ui/logo_ashen_run_text_alpha.png" alt="Ashen Run" />
       <p class="desk-only">Arrows to move. Space or up to jump. Down to slide. Esc to pause. M to mute.</p>
       <p class="touch-only">Swipe to move. Tap or swipe up to jump. Swipe down to slide.</p>
-      <p>BEST <span id="title-best">0</span></p>
+      <p>BEST <span id="title-best">0</span> · <span class="souls"><span id="title-souls">0</span> souls</span></p>
       <div id="loading"><div id="loading-wrap"><div id="load-bar"></div></div></div>
       <button class="btn hidden" id="play-btn">RUN</button>
     </div>
@@ -83,6 +84,7 @@
       <img class="record hidden" id="new-record" src="./art/ui/new_record_banner.png" alt="New record" />
       <p class="big">Score <span id="final-score">0</span></p>
       <p>Distance <span id="final-dist">0</span> m · Best <span id="final-best">0</span></p>
+      <p class="souls">+<span id="final-souls">0</span> souls</p>
       <div class="row"><button class="icon-btn" id="home-btn" aria-label="Back to title">Title</button><button class="btn" id="restart-btn">RISE AGAIN</button></div>
     </div></div>
     <div id="fps"></div>

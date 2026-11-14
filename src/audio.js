@@ -282,6 +282,7 @@ export class Audio {
     n.connect(bp).connect(g).connect(this.sfx);
   }
   sfx_lane(t, dir) { this.whoosh(t, 900, 2600, 0.14, 0.22, this.pan(dir * 0.6)); }
+  sfx_soul(t) { this.anvil(t, 2100 + Math.random() * 300, 0.12, this.sfx, 0.07); }
   sfx_clear(t) { this.anvil(t, 1400, 0.18, this.sfx, 0.12); }
   sfx_near(t) { this.whoosh(t, 2400, 600, 0.2, 0.35); this.anvil(t + 0.02, 980, 0.45, this.sfx, 0.3); }
   sfx_tier(t, mult) {
