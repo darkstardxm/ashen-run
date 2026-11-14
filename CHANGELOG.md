@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## Unreleased
 ### Fixed
-- No sound on iPhone Safari: audio now uses the playback session (ignores the silent switch), unlocks on more tap events, and resumes after interruptions.
+- iPhone Safari audio: unlocks on more tap events and resumes after calls or app switches. Sound follows the ring/silent switch on purpose (no sound when the phone is on silent).
 ### Docs and tests
 - GDD updated to the as-built game; README covers phone install and testing.
 - `npm test` runs every play-test (tests/all.mjs) and prints a pass/fail table.

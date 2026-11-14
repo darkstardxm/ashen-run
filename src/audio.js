@@ -18,17 +18,6 @@ const DRUMS = [
 ];
 const parse = (s) => s.split(' ');
 
-// Half a second of silent 8 kHz mono PCM, for the iOS media-session unlock.
-const SILENT_WAV = (() => {
-  const n = 4000, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
-  const str = (o, t) => [...t].forEach((c, i) => (b[o + i] = c.charCodeAt(0)));
-  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
-  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
-  v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
-  let s = ''; b.forEach((x) => (s += String.fromCharCode(x)));
-  return 'data:audio/wav;base64,' + btoa(s);
-})();
-
 export class Audio {
   constructor() {
     this.ctx = null;
@@ -44,14 +33,8 @@ export class Audio {
 
   // Must be called from a user gesture (browsers block audio until then).
   unlock() {
-    // iPhone: Web Audio is silenced by the ring/silent switch unless the page uses the "playback" session.
-    // Safari 16.4+ has navigator.audioSession; older iOS needs a media element playing during a tap.
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
-    if (!this.keepAlive) {
-      const el = this.keepAlive = document.createElement('audio');
-      el.setAttribute('playsinline', ''); el.loop = true; el.src = SILENT_WAV;
-      el.play().catch(() => { this.keepAlive = null; });
-    }
+    // iPhone: respect the ring/silent switch (ambient session), so the game never surprises anyone.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch {}
     if (this.ctx) {
       // iOS can leave the context 'suspended' or 'interrupted' (after a call or app switch).
       if (this.ctx.state !== 'running' && !this.paused) this.ctx.resume().catch(() => {});
