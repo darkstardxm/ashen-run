@@ -33,7 +33,7 @@ p.on('requestfailed', r => errs.push('REQFAIL ' + r.url()));
 await p.setViewport({ width: 1280, height: 720 });
 const t0 = Date.now();
 await p.goto(URL, { waitUntil: 'load' });
-await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
+await p.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
 out.loadMs = Date.now() - t0;
 await sleep(800);
 await p.screenshot({ path: `${DIR}/m3-title.png` });
@@ -78,7 +78,7 @@ const m = await b.newPage();
 m.on('pageerror', e => errs.push('M ' + e.message));
 await m.emulate(KnownDevices['iPhone 13']);
 await m.goto(URL, { waitUntil: 'load' });
-await m.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
+await m.waitForFunction(() => window.__runner?.ready && window.__runner.allLoaded, { timeout: 60000 });
 await m.tap('#play-btn'); await sleep(500);
 const cdp = await m.createCDPSession();
 const swipe = async (x0, y0, x1, y1) => {

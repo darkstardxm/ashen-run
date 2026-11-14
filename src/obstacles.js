@@ -55,18 +55,8 @@ export class Obstacles {
     this.group = new THREE.Group();
     scene.add(this.group);
     this.cueMats = new Set();
-    this.tpl = BIOMES.map((b) => {
-      const o = assets.biomes[b.id].obstacles;
-      const prep = (root) => { this.collectCues(root); return root; };
-      const low = prep(o.low_barrier), high = prep(o.hanging_blade_or_beam), wall = prep(o.broken_wall), sig = prep(o[b.signature]);
-      return {
-        low: { root: low, d: boxFromCollider(colliderOf(low, 'low_barrier')) },
-        // Beam: bottom edge at 1.1 m; the collider runs up into the chains so it can't be jumped.
-        high: { root: high, d: { w: 1.9, h: 2.9, d: MIN_DEPTH, y: 1.1 + 1.45 } },
-        wall: { root: wall, d: { ...boxFromCollider(colliderOf(wall, 'broken_wall')), w: 1.9 } },
-        sig: { root: sig, kind: SIG_KIND[b.signature], d: this.sigBox(SIG_KIND[b.signature], sig) },
-      };
-    });
+    this.tpl = [];
+    this.addBiome(0, assets);
     // Gaps are per-lane holes: a black pit with ember glow from below.
     const gapGeo = new THREE.PlaneGeometry(2.0, 2.4).rotateX(-Math.PI / 2);
     this.gapTpl = new THREE.Group();
@@ -101,6 +91,21 @@ export class Obstacles {
     });
   }
 
+  // Templates for one biome; called again as later biomes finish streaming in.
+  addBiome(bi, assets) {
+    const b = BIOMES[bi];
+    const o = assets.biomes[b.id].obstacles;
+    const prep = (root) => { this.collectCues(root); return root; };
+    const low = prep(o.low_barrier), high = prep(o.hanging_blade_or_beam), wall = prep(o.broken_wall), sig = prep(o[b.signature]);
+    this.tpl[bi] = {
+      low: { root: low, d: boxFromCollider(colliderOf(low, 'low_barrier')) },
+      // Beam: bottom edge at 1.1 m; the collider runs up into the chains so it can't be jumped.
+      high: { root: high, d: { w: 1.9, h: 2.9, d: MIN_DEPTH, y: 1.1 + 1.45 } },
+      wall: { root: wall, d: { ...boxFromCollider(colliderOf(wall, 'broken_wall')), w: 1.9 } },
+      sig: { root: sig, kind: SIG_KIND[b.signature], d: this.sigBox(SIG_KIND[b.signature], sig) },
+    };
+  }
+
   reset() {
     for (const o of this.items || []) this.group.remove(o.mesh);
     this.items = [];
@@ -117,7 +122,8 @@ export class Obstacles {
     const pool = PATTERNS.filter((p) => p.min <= elapsed);
     const pat = pool[Math.floor(Math.random() * pool.length)];
     const flip = Math.random() < 0.5;
-    const biome = biomeIndexAt(distance - z);
+    let biome = biomeIndexAt(distance - z);
+    if (!this.tpl[biome]) biome = 0; // not streamed in yet
     const row = { id: ++this.rowId, scored: false };
     for (const r of pat.rows) {
       const lanes = flip ? [...r].reverse() : r;
