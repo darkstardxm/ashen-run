@@ -13,9 +13,21 @@ function loaders(manager) {
     img: (p, srgb = true) => tex.loadAsync(BASE + p).then((t) => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; }),
   };
 }
+// Pits (gap_lane, art batch 3) are modelled below y = 0. The track floor skips every pixel where a pit's
+// pit_void mask wrote stencil 1 (obstacles.js PIT_MASK), so the shaft shows through the opaque floor.
+function cutFloor(track) {
+  track.traverse((o) => {
+    if (!o.isMesh || !/_floor$/.test(o.material.name)) return;
+    Object.assign(o.material, {
+      stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc,
+      stencilFail: THREE.KeepStencilOp, stencilZFail: THREE.KeepStencilOp, stencilZPass: THREE.KeepStencilOp,
+    });
+  });
+  return track;
+}
 function biomeJobs(L, out, b) {
   const o = (out.biomes[b.id] = { obstacles: {}, scenery: {} });
-  const jobs = [L.glb(`track/${b.id}_segment.glb`).then((g) => (o.track = g.scene))];
+  const jobs = [L.glb(`track/${b.id}_segment.glb`).then((g) => (o.track = cutFloor(g.scene)))];
   for (const n of [...OBSTACLES, b.signature]) jobs.push(L.glb(`obstacles/${b.id}/${n}.glb`).then((g) => (o.obstacles[n] = g.scene)));
   for (const n of new Set([...b.scenery, b.pillar, b.arch].filter(Boolean))) jobs.push(L.glb(`scenery/${b.id}/${n}.glb`).then((g) => (o.scenery[n] = g.scene)));
   // Per-lane pit (art batch 2). Optional: falls back to the procedural pit.
