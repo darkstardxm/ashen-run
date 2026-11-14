@@ -1,0 +1,18 @@
+import puppeteer from 'puppeteer-core';
+const URL = process.argv[2] || 'http://localhost:4173';
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage(); const errs = [];
+p.on('pageerror', e => errs.push(e.message));
+await p.setViewport({ width: 1280, height: 720 });
+await p.goto(URL, { waitUntil: 'load' }); await p.waitForFunction(() => window.__runner?.ready, { timeout: 60000 });
+await p.click('#play-btn');
+await p.waitForFunction(() => window.__runner.state.mode === 'over', { timeout: 60000 });
+await sleep(800);
+await p.click('#home-btn'); await sleep(2500);
+const r = await p.evaluate(() => { const R = window.__runner; return { mode: R.state.mode, items: R.obstacles.items.length, near: R.obstacles.items.filter(o => o.mesh.visible !== false && o.mesh.position.z > -20).length, dist: R.state.distance }; });
+await p.screenshot({ path: '/workspace/runner-docs/home-after-death.png' });
+await p.click('#play-btn'); await sleep(1500);
+r.restart = await p.evaluate(() => window.__runner.state.mode);
+console.log(JSON.stringify({ ...r, errs }));
+await b.close();
