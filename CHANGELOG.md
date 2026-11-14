@@ -3,6 +3,8 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+### Removed
+- Unused full-width pit models (gap_edge.glb), replaced by per-lane gap_lane.glb.
 ### Fixed
 - iPhone Safari audio: unlocks on more tap events and resumes after calls or app switches. Sound follows the ring/silent switch on purpose (no sound when the phone is on silent).
 ### Docs and tests
