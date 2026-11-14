@@ -3,6 +3,9 @@
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+### Docs and tests
+- GDD updated to the as-built game; README covers phone install and testing.
+- `npm test` runs every play-test (tests/all.mjs) and prints a pass/fail table.
 ### Install
 - Installable as an app (web manifest plus service worker). Plays offline after the first visit.
 ### Art batch 2

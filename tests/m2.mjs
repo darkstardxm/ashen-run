@@ -1,7 +1,7 @@
 import puppeteer, { KnownDevices } from 'puppeteer-core';
 const URL = process.argv[2] || 'http://localhost:4173';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new',
+const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', headless: 'new',
   args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const out = {}, errs = [];
 const p = await b.newPage();
