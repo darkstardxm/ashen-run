@@ -65,6 +65,6 @@ Art comes from Game Art Director in batches: batch 1 (all models, skies, UI, VFX
 | M4 | Audio and polish | Metal tracks and SFX, camera juice, mobile tuning, bug fixing | Full play-test pass, no open blocking bugs |
 | v1 | Release | Final play-test on desktop and mobile at the live URL, docs cleaned up | You sign off |
 
-Status: M0 to M4 are merged and live; v1 waits on the real-phone play-test and sign-off.
+Status: v1.0 shipped and signed off on Nov 13, 2026.
 
 Each milestone is play-tested in a real browser (frame rate, desktop and mobile input, high-score persistence, restart) before it's called done.
