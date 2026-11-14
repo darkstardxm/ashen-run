@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## v1.0 (2026-11-13), signed off by Dexter
 ### Art batch 3
 - Pits read as real drops: new gap_lane models (dark shaft, broken lip, cold edge light) and a stencil cut in the track floor so the shaft shows through. Pit edges stay visible through fog.
 ### Removed
